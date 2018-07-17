@@ -36,7 +36,8 @@ sudo apt-get install libatlas-base-dev gfortran
 sudo apt-get install python2.7-dev python3-dev
 ```
 
-### For compiling OpenCV from source
+### Compiling OpenCV from source
+Grab the most recent version of OpenCV from their repo. Feel free to use something more recent than 3.4.2.
 ``` bash
 cd ~
 wget -O opencv.zip https://github.com/opencv/opencv/archive/3.4.2.zip
@@ -76,6 +77,24 @@ Finally, we're ready to compile Open CV for our environment. This takes ~1.5 hou
 ``` bash
 make -j4
 ```
+
+Now install the built package. Run this from inside the build folder.
+``` bash
+sudo make install
+sudo ldconfig
+```
+
+After running make install , your OpenCV + Python bindings should be installed in /usr/local/lib/python3.5/site-packages. According to some, the shared library that is generated from Open CV's compilation is icorrectly named. Rename cv2.cpython-35m-arm-linux-gnueabihf.so to cv2.so.
+
+Now we need to add a sym link between the global Python install, and the virtual env for our project.
+
+``` bash
+ln -s /usr/local/lib/python3.5/site-packages/cv2.so ${PATH_TO_VENV_SITE_PACKAGES}/cv2.so
+```
+
+To verify the install worked, from your virtual environment, run the Python interpreter. Import cv2 and check cv2.__version__.
+
+The final thing to do is to clean up the swap size. Leaving it large can reduce the lifespan of your storage. Same as last time, restart the service.
 
 ### Installing OpenCV
 https://www.pyimagesearch.com/2017/09/04/raspbian-stretch-install-opencv-3-python-on-your-raspberry-pi/
