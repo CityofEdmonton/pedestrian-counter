@@ -4,6 +4,7 @@ Adafruit-GPIO==1.0.3
 Adafruit-PureIO==0.2.3
 cairocffi==0.8.1
 cffi==1.11.5
+colour==0.1.5
 cycler==0.10.0
 imutils==0.4.6
 kiwisolver==1.0.1
@@ -12,6 +13,7 @@ numpy==1.14.5
 pgi==0.0.11.2
 Pillow==5.2.0
 pycparser==2.18
+pygame==1.9.4
 pyparsing==2.2.0
 python-dateutil==2.7.3
 pytz==2018.5
