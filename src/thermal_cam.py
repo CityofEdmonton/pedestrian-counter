@@ -19,7 +19,7 @@ MAXTEMP = 32
 COLORDEPTH = 1024
 
 #save resulting images?
-SAVEIMAGES = False
+SAVEIMAGES = True
 
 os.putenv('SDL_FBDEV', '/dev/fb1')
 pygame.init()
@@ -80,6 +80,6 @@ while(1):
 	pygame.display.update()
 	
 	if SAVEIMAGES:
-		pygame.image.save(pygame.display.get_surface(), "~/raw-images/h" + str(MAXTEMP) + "-l" + str(MINTEMP) + "_" + str(frame) + ".jpeg")
+		pygame.image.save(pygame.display.get_surface(), "./h" + str(MAXTEMP) + "-l" + str(MINTEMP) + "_" + str(frame) + ".jpeg")
 	
 	frame += 1
