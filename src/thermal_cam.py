@@ -18,6 +18,9 @@ MAXTEMP = 32
 #how many color values we can have
 COLORDEPTH = 1024
 
+#save resulting images?
+SAVEIMAGES = False
+
 os.putenv('SDL_FBDEV', '/dev/fb1')
 pygame.init()
 
@@ -60,7 +63,7 @@ def map(x, in_min, in_max, out_min, out_max):
 
 #let the sensor initialize
 time.sleep(.1)
-
+frame = 0
 while(1):
 
 	#read the pixels
@@ -75,3 +78,8 @@ while(1):
 		for jx, pixel in enumerate(row):
 			pygame.draw.rect(lcd, colors[constrain(int(pixel), 0, COLORDEPTH- 1)], (displayPixelHeight * ix, displayPixelWidth * jx, displayPixelHeight, displayPixelWidth))
 	pygame.display.update()
+	
+	if SAVEIMAGES:
+		pygame.image.save(pygame.display.get_surface(), "~/raw-images/h" + str(MAXTEMP) + "-l" + str(MINTEMP) + "_" + str(frame) + ".jpeg")
+	
+	frame += 1
