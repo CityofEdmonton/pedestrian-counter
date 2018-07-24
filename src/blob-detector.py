@@ -1,13 +1,4 @@
 class BlobDetector:
-
-    minArea = 5
-
-    filterByCircularity = False
-    minCircularity = 0.1
-
-    filterByConvexity = False
-    minConvexity = 0.87
-
     __init__ (self,
             minThreshold = 10,
             maxThreshold = 255,
