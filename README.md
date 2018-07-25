@@ -21,6 +21,21 @@ sudo apt-get install libqtgui4
 
 ```
 
+### For the Adafruit AMG88XX Thermal Sensor
+
+Ensure you are using virtualenv, as it makes these dependencies so much easier to manage.
+
+``` bash
+git clone https://github.com/adafruit/Adafruit_AMG88xx_python.git 
+cd Adafruit_AMG88xx_python
+python setup.py install
+```
+
+Then, check setup success from the python cli interpreter
+``` python
+import Adafruit_AMG88xx
+```
+
 ### For OpenCV's dependencies
 ``` bash
 sudo apt-get install build-essential cmake pkg-config
