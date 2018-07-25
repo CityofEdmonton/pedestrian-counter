@@ -5,10 +5,14 @@ import math
 import time
 import numpy as np
 from scipy.interpolate import griddata
-import cv2
+# import cv2
 from colour import Color
 
 from ThermalCamera import ThermalCamera
+from ThermalLoader import ThermalLoader
+
+#The preferred # of frames per second.
+FPS = 10
 
 MINTEMP = 26
 MAXTEMP = 32
@@ -17,13 +21,15 @@ MAXTEMP = 32
 COLORDEPTH = 1024
 
 #save resulting images?
-SAVEIMAGES = True
+SAVEIMAGES = False
 
 os.putenv('SDL_FBDEV', '/dev/fb1')
 pygame.init()
 
 #initialize the sensor
-sensor = ThermalCamera(True, "./thermal-data.txt")
+# sensor = ThermalCamera(True, "./thermal-data.txt")
+sensor = ThermalLoader()
+sensor.load("./src/thermal-top-down.pickle")
 
 points = [(math.floor(ix / 8), (ix % 8)) for ix in range(0, 64)]
 grid_x, grid_y = np.mgrid[0:7:32j, 0:7:32j]
@@ -56,30 +62,30 @@ pygame.display.update()
 #TODO: Remove me
 # Prepare the OpenCV blob detector. For now, this only works when saving an image.
 # Setup SimpleBlobDetector parameters.
-params = cv2.SimpleBlobDetector_Params()
+# params = cv2.SimpleBlobDetector_Params()
 
-# Change thresholds
-params.minThreshold = 10
-params.maxThreshold = 255
+# # Change thresholds
+# params.minThreshold = 10
+# params.maxThreshold = 255
 
-# Filter by Area.
-params.filterByArea = True
-params.minArea = 5
+# # Filter by Area.
+# params.filterByArea = True
+# params.minArea = 5
 
-# Filter by Circularity
-params.filterByCircularity = True
-params.minCircularity = 0.1
+# # Filter by Circularity
+# params.filterByCircularity = True
+# params.minCircularity = 0.1
 
-# Filter by Convexity
-params.filterByConvexity = False
-params.minConvexity = 0.87
+# # Filter by Convexity
+# params.filterByConvexity = False
+# params.minConvexity = 0.87
 
-# Filter by Inertia
-params.filterByInertia = False
-params.minInertiaRatio = 0.01
+# # Filter by Inertia
+# params.filterByInertia = False
+# params.minInertiaRatio = 0.01
 
-# Set up the detector with default parameters.
-detector = cv2.SimpleBlobDetector_create(params)
+# # Set up the detector with default parameters.
+# detector = cv2.SimpleBlobDetector_create(params)
 
 #some utility functions
 def constrain(val, min_val, max_val):
@@ -92,7 +98,7 @@ def map(x, in_min, in_max, out_min, out_max):
 time.sleep(.1)
 frame = 0
 while(frame < 100):
-
+	start = time.time()
 	#read the pixels
 	pixels = sensor.get()
 
@@ -111,23 +117,24 @@ while(frame < 100):
 		pygame.image.save(pygame.display.get_surface(), fileName)
 
 		# Read image
-		img = cv2.imread(fileName, cv2.IMREAD_GRAYSCALE)
-		img = cv2.bitwise_not(img)
+		# img = cv2.imread(fileName, cv2.IMREAD_GRAYSCALE)
+		# img = cv2.bitwise_not(img)
 
 		# Detect blobs.
-		keypoints = detector.detect(img)
+		# keypoints = detector.detect(img)
 
-		for i in range (0, len(keypoints)):
-			x = keypoints[i].pt[0]
-			y = keypoints[i].pt[1]
+		# for i in range (0, len(keypoints)):
+		# 	x = keypoints[i].pt[0]
+		# 	y = keypoints[i].pt[1]
 
-			# print little circle
-			pygame.draw.circle(lcd, (200, 0, 0), (int(x), int(y)), 7, 3)
+		# 	# print little circle
+		# 	pygame.draw.circle(lcd, (200, 0, 0), (int(x), int(y)), 7, 3)
 
-		pygame.display.update()
-		pygame.image.save(pygame.display.get_surface(), outputFile)
-
+		# pygame.display.update()
+		# pygame.image.save(pygame.display.get_surface(), outputFile)
+	print("Frame: " + str(frame))
 	frame += 1
-print("saving thermal data")
-sensor.save()
+	time.sleep(max(1./25 - (time.time() - start), 0))
+# print("saving thermal data")
+# sensor.save()
 print("terminating...")
