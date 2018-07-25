@@ -3,17 +3,12 @@ import pygame
 import os
 import math
 import time
-
 import numpy as np
 from scipy.interpolate import griddata
 import cv2
 from colour import Color
 
-#low range of the sensor (this will be blue on the screen)
-MINTEMP = 26
-
-#high range of the sensor (this will be red on the screen)
-MAXTEMP = 32
+from ThermalCamera import ThermalCamera
 
 #how many color values we can have
 COLORDEPTH = 1024
@@ -25,7 +20,7 @@ os.putenv('SDL_FBDEV', '/dev/fb1')
 pygame.init()
 
 #initialize the sensor
-sensor = Adafruit_AMG88xx()
+sensor = ThermalCamera(True, "./thermal-data.txt")
 
 points = [(math.floor(ix / 8), (ix % 8)) for ix in range(0, 64)]
 grid_x, grid_y = np.mgrid[0:7:32j, 0:7:32j]
@@ -85,7 +80,7 @@ detector = cv2.SimpleBlobDetector_create(params)
 
 #some utility functions
 def constrain(val, min_val, max_val):
-    return min(max_val, max(min_val, val))
+	return min(max_val, max(min_val, val))
 
 def map(x, in_min, in_max, out_min, out_max):
   return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
@@ -93,11 +88,10 @@ def map(x, in_min, in_max, out_min, out_max):
 #let the sensor initialize
 time.sleep(.1)
 frame = 0
-while(1):
+while(frame < 100):
 
 	#read the pixels
-	pixels = sensor.readPixels()
-	pixels = [map(p, MINTEMP, MAXTEMP, 0, COLORDEPTH - 1) for p in pixels]
+	pixels = sensor.get()
 
 	#perform interpolation
 	bicubic = griddata(points, pixels, (grid_x, grid_y), method='cubic')
@@ -113,17 +107,20 @@ while(1):
 		pygame.image.save(pygame.display.get_surface(), fileName)
 
 		# Read image
-        img = cv2.imread(filename, cv2.IMREAD_GRAYSCALE)
-        img = cv2.bitwise_not(img)
+		img = cv2.imread(filename, cv2.IMREAD_GRAYSCALE)
+		img = cv2.bitwise_not(img)
 
 		# Detect blobs.
-        keypoints = detector.detect(img)
+		keypoints = detector.detect(img)
 
 		for i in range (0, len(keypoints)):
-            x = keypoints[i].pt[0]
-            y = keypoints[i].pt[1]
-            
+			x = keypoints[i].pt[0]
+			y = keypoints[i].pt[1]
+			
 			# print little circle
 			pygame.draw.circle(lcd, detectionColor, intlist(x, y), 3, 1)
 	
 	frame += 1
+print("saving thermal data")
+sensor.save()
+print("terminating...")
