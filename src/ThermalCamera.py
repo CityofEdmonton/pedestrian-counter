@@ -1,6 +1,6 @@
 from Adafruit_AMG88xx import Adafruit_AMG88xx
 from ThermalData import ThermalData
-import numpy as np
+import pickle
 
 
 class ThermalCamera(ThermalData):
@@ -28,6 +28,8 @@ class ThermalCamera(ThermalData):
 	def save(self):
 		if self.saveToDisk:
 			print("Writing to disk")
-			np.savetxt(self.saveLocation, self.frames)
+			outfile = open(self.saveLocation, "wb")
+			pickle.dump(self.frames, outfile)
+			outfile.close()
 		else:
 			return
