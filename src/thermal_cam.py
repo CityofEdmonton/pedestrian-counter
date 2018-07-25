@@ -110,6 +110,7 @@ while(1):
 
 	if SAVEIMAGES:
 		fileName = "./img/heatmap/h" + str(MAXTEMP) + "-l" + str(MINTEMP) + "_" + str(frame) + ".jpeg"
+		outputFile = "./img/detections/h" + str(MAXTEMP) + "-l" + str(MINTEMP) + "_" + str(frame) + ".jpeg"
 		pygame.image.save(pygame.display.get_surface(), fileName)
 
 		# Read image
@@ -125,6 +126,8 @@ while(1):
 
 			# print little circle
 			pygame.draw.circle(lcd, (200, 0, 0), (int(x), int(y)), 7, 3)
-			pygame.display.update()
+
+		pygame.display.update()
+		pygame.image.save(pygame.display.get_surface(), outputFile)
 
 	frame += 1
