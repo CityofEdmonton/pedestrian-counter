@@ -10,6 +10,9 @@ from colour import Color
 
 from ThermalCamera import ThermalCamera
 
+MINTEMP = 26
+MAXTEMP = 32
+
 #how many color values we can have
 COLORDEPTH = 1024
 
@@ -101,13 +104,14 @@ while(frame < 100):
 		for jx, pixel in enumerate(row):
 			pygame.draw.rect(lcd, colors[constrain(int(pixel), 0, COLORDEPTH- 1)], (displayPixelHeight * ix, displayPixelWidth * jx, displayPixelHeight, displayPixelWidth))
 	pygame.display.update()
-	
+
 	if SAVEIMAGES:
 		fileName = "./img/heatmap/h" + str(MAXTEMP) + "-l" + str(MINTEMP) + "_" + str(frame) + ".jpeg"
+		outputFile = "./img/detections/h" + str(MAXTEMP) + "-l" + str(MINTEMP) + "_" + str(frame) + ".jpeg"
 		pygame.image.save(pygame.display.get_surface(), fileName)
 
 		# Read image
-		img = cv2.imread(filename, cv2.IMREAD_GRAYSCALE)
+		img = cv2.imread(fileName, cv2.IMREAD_GRAYSCALE)
 		img = cv2.bitwise_not(img)
 
 		# Detect blobs.
@@ -116,10 +120,13 @@ while(frame < 100):
 		for i in range (0, len(keypoints)):
 			x = keypoints[i].pt[0]
 			y = keypoints[i].pt[1]
-			
+
 			# print little circle
-			pygame.draw.circle(lcd, detectionColor, intlist(x, y), 3, 1)
-	
+			pygame.draw.circle(lcd, (200, 0, 0), (int(x), int(y)), 7, 3)
+
+		pygame.display.update()
+		pygame.image.save(pygame.display.get_surface(), outputFile)
+
 	frame += 1
 print("saving thermal data")
 sensor.save()
