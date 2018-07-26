@@ -10,6 +10,7 @@ from colour import Color
 
 from ThermalCamera import ThermalCamera
 from ThermalLoader import ThermalLoader
+from CentroidTracker import CentroidTracker
 
 #The preferred # of frames per second.
 FPS = 10
@@ -27,9 +28,9 @@ os.putenv('SDL_FBDEV', '/dev/fb1')
 pygame.init()
 
 #initialize the sensor
-# sensor = ThermalCamera(True, "./thermal-data.txt")
-sensor = ThermalLoader()
-sensor.load("./src/thermal-top-down.pickle")
+sensor = ThermalCamera(True, "./thermal-data.txt")
+#sensor = ThermalLoader()
+#sensor.load("./src/thermal-top-down.pickle")
 
 points = [(math.floor(ix / 8), (ix % 8)) for ix in range(0, 64)]
 grid_x, grid_y = np.mgrid[0:7:32j, 0:7:32j]
@@ -87,6 +88,9 @@ params.minInertiaRatio = 0.01
 # # Set up the detector with default parameters.
 detector = cv2.SimpleBlobDetector_create(params)
 
+#initialize centroid tracker
+ct = CentroidTracker()
+
 #some utility functions
 def constrain(val, min_val, max_val):
 	return min(max_val, max(min_val, val))
@@ -97,7 +101,7 @@ def map(x, in_min, in_max, out_min, out_max):
 #let the sensor initialize
 time.sleep(.1)
 frame = 0
-while(frame < 100):
+while(True):
 	start = time.time()
 	#read the pixels
 	pixels = sensor.get()
@@ -111,27 +115,37 @@ while(frame < 100):
 			pygame.draw.rect(lcd, colors[constrain(int(pixel), 0, COLORDEPTH- 1)], (displayPixelHeight * ix, displayPixelWidth * jx, displayPixelHeight, displayPixelWidth))
 	pygame.display.update()
 
-	if SAVEIMAGES:
-		fileName = "./img/heatmap/h" + str(MAXTEMP) + "-l" + str(MINTEMP) + "_" + str(frame) + ".jpeg"
-		outputFile = "./img/detections/h" + str(MAXTEMP) + "-l" + str(MINTEMP) + "_" + str(frame) + ".jpeg"
-		pygame.image.save(pygame.display.get_surface(), fileName)
+	#if SAVEIMAGES:
+	fileName = "./img/heatmap/h" + str(MAXTEMP) + "-l" + str(MINTEMP) + "_" + str(frame) + ".jpeg"
+	outputFile = "./img/detections/h" + str(MAXTEMP) + "-l" + str(MINTEMP) + "_" + str(frame) + ".jpeg"	
+	pygame.image.save(pygame.display.get_surface(), fileName)
 
-		# Read image
-		img = cv2.imread(fileName, cv2.IMREAD_GRAYSCALE)
-		img = cv2.bitwise_not(img)
+	# Read image
+	img = cv2.imread(fileName, cv2.IMREAD_GRAYSCALE)
+	img = cv2.bitwise_not(img)
 
-		# Detect blobs.
-		keypoints = detector.detect(img)
+	# Detect blobs.
+	keypoints = detector.detect(img)
 
-		for i in range (0, len(keypoints)):
-		 	x = keypoints[i].pt[0]
-		 	y = keypoints[i].pt[1]
+	for i in range (0, len(keypoints)):
+	 	x = keypoints[i].pt[0]
+	 	y = keypoints[i].pt[1]
 
-		 	# print little circle
-		 	pygame.draw.circle(lcd, (200, 0, 0), (int(x), int(y)), 7, 3)
+	 	# print little circle
+	 	pygame.draw.circle(lcd, (200, 0, 0), (int(x), int(y)), 7, 3)
+		
+	# update  our centroid tracker using the detected centroids
+	objects = ct.update(keypoints)
+	# loop over tracked objects and displays object ID
+	pygame.font.init()
+	for (objectID, centroid) in objects.items():
+		text = "ID{}".format(objectID)
+		myfont = pygame.font.SysFont('Comic Sans MS', 30)
+		textsurface = myfont.render(text, False, (0,0,0))
+		lcd.blit(textsurface,(centroid[0]-10,centroid[1]-10))
 
-		pygame.display.update()
-		pygame.image.save(pygame.display.get_surface(), outputFile)
+	pygame.display.update()
+	pygame.image.save(pygame.display.get_surface(), outputFile)
 	print("Frame: " + str(frame))
 	frame += 1
 	time.sleep(max(1./25 - (time.time() - start), 0))
