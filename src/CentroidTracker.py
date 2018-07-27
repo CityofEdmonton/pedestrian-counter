@@ -1,10 +1,11 @@
-# import the necessary packages
+# https://www.pyimagesearch.com/2018/07/23/simple-object-tracking-with-opencv/
+
 from scipy.spatial import distance as dist
 from collections import OrderedDict
 import numpy as np
  
 class CentroidTracker():
-	def __init__(self, maxDisappeared=5):
+	def __init__(self, maxDisappeared=15, maxDetected=5):
 		# initialize the next unique object ID along with two ordered
 		# dictionaries used to keep track of mapping a given object
 		# ID to its centroid and number of consecutive frames it has
@@ -12,17 +13,21 @@ class CentroidTracker():
 		self.nextObjectID = 0
 		self.objects = OrderedDict()
 		self.disappeared = OrderedDict()
- 
+		self.person = OrderedDict()
+		self.detected = OrderedDict()
+
 		# store the number of maximum consecutive frames a given
 		# object is allowed to be marked as "disappeared" until we
 		# need to deregister the object from tracking
 		self.maxDisappeared = maxDisappeared  
+		self.maxDetected = maxDetected
 
 	def register(self, centroid):
 		# when registering an object we use the next available object
 		# ID to store the centroid
 		self.objects[self.nextObjectID] = centroid
 		self.disappeared[self.nextObjectID] = 0
+		self.person[self.nextObjectID] = 0
 		self.nextObjectID += 1
 
 	def deregister(self, objectID):
@@ -30,9 +35,10 @@ class CentroidTracker():
 		# both of our respective dictionaries
 		del self.objects[objectID]
 		del self.disappeared[objectID]
+		del self.person[objectID]
 
 	def update(self, keypoints):
-		# check to see if the list of input centroids is empty is empty
+		# check to see if the list of input centroids is empty
 		if len(keypoints) == 0:
 			# loop over any existing tracked objects and mark them
 			# as disappeared
@@ -52,7 +58,7 @@ class CentroidTracker():
 		# initialize an array of input centroids for the current frame
 		inputCentroids = np.zeros((len(keypoints), 2), dtype="int")
  
-		# loop over the bounding box rectangles
+		# loop over the detected keypoints
 		for i in range(len(keypoints)):
 			X = keypoints[i].pt[0]
 			Y = keypoints[i].pt[1]
@@ -111,7 +117,12 @@ class CentroidTracker():
 				objectID = objectIDs[row]
 				self.objects[objectID] = inputCentroids[col]
 				self.disappeared[objectID] = 0
- 
+				self.person[objectID] += 1
+				
+				# update person counter
+				if self.person[objectID] > self.maxDetected:
+					self.detected[objectID] = 0
+
 				# indicate that we have examined each of the row and
 				# column indexes, respectively
 				usedRows.add(row)
@@ -133,6 +144,7 @@ class CentroidTracker():
 					# index and increment the disappeared counter
 					objectID = objectIDs[row]
 					self.disappeared[objectID] += 1
+					self.person[objectID] = 0
  
 					# check to see if the number of consecutive
 					# frames the object has been marked "disappeared"
@@ -149,3 +161,7 @@ class CentroidTracker():
  
 		# return the set of trackable objects
 		return self.objects
+
+	# return person count
+	def get_count(self):
+		return len(self.detected)

@@ -21,7 +21,6 @@ class ThermalCamera(ThermalData):
 		pixels = [self.map(p, self.MINTEMP, self.MAXTEMP, 0, self.COLORDEPTH - 1) for p in pixels]
 		if self.saveToDisk:
 			self.frames.append(pixels)
-			print(self.frames[-1])
 			return self.frames[-1]
 		else:
 			return pixels

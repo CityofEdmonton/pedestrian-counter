@@ -136,19 +136,22 @@ while(True):
 		
 	# update  our centroid tracker using the detected centroids
 	objects = ct.update(keypoints)
+
 	# loop over tracked objects and displays object ID
-	pygame.font.init()
-	for (objectID, centroid) in objects.items():
-		text = "ID{}".format(objectID)
-		myfont = pygame.font.SysFont('Comic Sans MS', 30)
-		textsurface = myfont.render(text, False, (0,0,0))
-		lcd.blit(textsurface,(centroid[0]-10,centroid[1]-10))
+#	pygame.font.init()
+#	for (objectID, centroid) in objects.items():
+#		text = "ID{}".format(objectID)
+#		myfont = pygame.font.SysFont('Comic Sans MS', 30)
+#		textsurface = myfont.render(text, False, (0,0,0))
+#		lcd.blit(textsurface,(centroid[0]-10,centroid[1]-10))
 
 	pygame.display.update()
 	pygame.image.save(pygame.display.get_surface(), outputFile)
 	print("Frame: " + str(frame))
 	frame += 1
 	time.sleep(max(1./25 - (time.time() - start), 0))
+	print("Person Count:")
+	print(ct.get_count())
 # print("saving thermal data")
 # sensor.save()
 print("terminating...")
