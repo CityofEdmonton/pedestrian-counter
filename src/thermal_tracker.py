@@ -12,6 +12,9 @@ from ThermalCamera import ThermalCamera
 from ThermalLoader import ThermalLoader
 from CentroidTracker import CentroidTracker
 
+from multiprocessing import Process, active_children
+import pexpect
+
 #The preferred # of frames per second.
 FPS = 10
 
@@ -101,6 +104,20 @@ def map(x, in_min, in_max, out_min, out_max):
 #let the sensor initialize
 time.sleep(.1)
 frame = 0
+
+# Lora related functions
+
+def transmit(str):
+	lora = pexpect.spawn('./thethingsnetwork-send-v1')
+	while(1):
+		print (lora.before, lora.after)
+		i = lora.expect(['waiting', 'FAILURE', 'not sending'])
+		if i == 0:
+			lora.sendline(str)
+			print (lora.before, lora.after)
+		else:
+			break
+
 while(True):
 	start = time.time()
 	#read the pixels
@@ -147,11 +164,21 @@ while(True):
 
 	pygame.display.update()
 	pygame.image.save(pygame.display.get_surface(), outputFile)
-	print("Frame: " + str(frame))
+#	print("Frame: " + str(frame))
 	frame += 1
 	time.sleep(max(1./25 - (time.time() - start), 0))
-	print("Person Count:")
+
+	if frame == 1 or frame % 200 == 0:
+		plist = active_children()
+		for p in plist:
+			if p.name == 'lora_expect':
+				p.terminate()	
+		loraproc = Process(target=transmit,  name='lora_expect', args = (str(ct.get_count()),))
+		loraproc.start()
+	
+#	print("Person Count:")
 	print(ct.get_count())
+
 # print("saving thermal data")
 # sensor.save()
 print("terminating...")
