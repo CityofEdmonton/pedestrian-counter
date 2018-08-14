@@ -18,8 +18,8 @@ import pexpect
 #The preferred # of frames per second.
 FPS = 10
 
-MINTEMP = 26
-MAXTEMP = 32
+#MINTEMP = 26
+#MAXTEMP = 30
 
 #how many color values we can have
 COLORDEPTH = 1024
@@ -96,7 +96,7 @@ ct = CentroidTracker()
 
 #some utility functions
 def constrain(val, min_val, max_val):
-	return min(max_val, max(min_val, val))
+  return min(max_val, max(min_val, val))
 
 def map(x, in_min, in_max, out_min, out_max):
   return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
@@ -105,26 +105,29 @@ def map(x, in_min, in_max, out_min, out_max):
 time.sleep(.1)
 frame = 0
 
-# Lora related functions
-
+#separate process using pexpect to interact with ttn transmission
 def transmit(str):
 	lora = pexpect.spawn('./thethingsnetwork-send-v1')
 	while(1):
-		print (lora.before, lora.after)
-		i = lora.expect(['waiting', 'FAILURE', 'not sending'])
+		# handle all cases
+		i = lora.expect(['waiting', 'FAILURE', 'not sending', pexpect.TIMEOUT])
 		if i == 0:
 			lora.sendline(str)
-			print (lora.before, lora.after)
+			print ('PedCount updated!')
 		else:
+			print ('Lora Failure: retrying...')
+			lora.terminate(force=True)
 			break
 
 while(True):
 	start = time.time()
 	#read the pixels
 	pixels = sensor.get()
+	#print(pixels)
 
 	#perform interpolation
 	bicubic = griddata(points, pixels, (grid_x, grid_y), method='cubic')
+	#print(bicubic)
 
 	#draw everything
 	for ix, row in enumerate(bicubic):
@@ -132,13 +135,18 @@ while(True):
 			pygame.draw.rect(lcd, colors[constrain(int(pixel), 0, COLORDEPTH- 1)], (displayPixelHeight * ix, displayPixelWidth * jx, displayPixelHeight, displayPixelWidth))
 	pygame.display.update()
 
-	#if SAVEIMAGES:
-	fileName = "./img/heatmap/h" + str(MAXTEMP) + "-l" + str(MINTEMP) + "_" + str(frame) + ".jpeg"
-	outputFile = "./img/detections/h" + str(MAXTEMP) + "-l" + str(MINTEMP) + "_" + str(frame) + ".jpeg"	
-	pygame.image.save(pygame.display.get_surface(), fileName)
+	if SAVEIMAGES:
+		fileName = "./img/heatmap/h" + str(MAXTEMP) + "-l" + str(MINTEMP) + "_" + str(frame) + ".jpeg"
+		outputFile = "./img/detections/h" + str(MAXTEMP) + "-l" + str(MINTEMP) + "_" + str(frame) + ".jpeg"	
+
+	surface = pygame.display.get_surface()
+
+	img = pygame.surfarray.array3d(surface)
+	img.swapaxes(0,1)
+
 
 	# Read image
-	img = cv2.imread(fileName, cv2.IMREAD_GRAYSCALE)
+	img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 	img = cv2.bitwise_not(img)
 
 	# Detect blobs.
@@ -154,26 +162,20 @@ while(True):
 	# update  our centroid tracker using the detected centroids
 	objects = ct.update(keypoints)
 
-	# loop over tracked objects and displays object ID
-#	pygame.font.init()
-#	for (objectID, centroid) in objects.items():
-#		text = "ID{}".format(objectID)
-#		myfont = pygame.font.SysFont('Comic Sans MS', 30)
-#		textsurface = myfont.render(text, False, (0,0,0))
-#		lcd.blit(textsurface,(centroid[0]-10,centroid[1]-10))
-
 	pygame.display.update()
-	pygame.image.save(pygame.display.get_surface(), outputFile)
+#	pygame.image.save(pygame.display.get_surface(), outputFile)
 #	print("Frame: " + str(frame))
 	frame += 1
 	time.sleep(max(1./25 - (time.time() - start), 0))
 
-	if frame == 1 or frame % 200 == 0:
+	# transmit pedcount data every 100 frames
+	if frame == 1 or frame % 100 == 0:
+		# end current lora processes
 		plist = active_children()
 		for p in plist:
-			if p.name == 'lora_expect':
-				p.terminate()	
-		loraproc = Process(target=transmit,  name='lora_expect', args = (str(ct.get_count()),))
+			if p.name == 'lora_proc':
+				p.terminate()
+		loraproc = Process(target=transmit,  name='lora_proc', args = (str(ct.get_count()),))
 		loraproc.start()
 	
 #	print("Person Count:")

@@ -5,7 +5,7 @@ from collections import OrderedDict
 import numpy as np
  
 class CentroidTracker():
-	def __init__(self, maxDisappeared=15, maxDetected=5):
+	def __init__(self, maxDisappeared=10, maxDetected=1):
 		# initialize the next unique object ID along with two ordered
 		# dictionaries used to keep track of mapping a given object
 		# ID to its centroid and number of consecutive frames it has

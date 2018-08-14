@@ -70,7 +70,7 @@ void os_getDevKey (u1_t* buf) {
 }
 
 u4_t cntr=0;
-u1_t mydata[] = {"   "};
+u1_t mydata[] = {"    "};
 static osjob_t sendjob;
 
 // Pin mapping
@@ -102,14 +102,10 @@ void onEvent (ev_t ev) {
     }
 }
 
-// Use this to communicate with python using pipes!!!
+// used to read data from python program
 void readData(){
     char buf[8];
-    //char m;
-    //m = 'y';
     fprintf(stdout, "waiting");
-//    fprintf(stdout, "buf size: %d", sizeof(&buf));
-//    fprintf(stdout, "mydata size: %d", sizeof(&mydata));
     fscanf(stdin,"%s",&buf);
     int i=0;
     while(buf[i]){
