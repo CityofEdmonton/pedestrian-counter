@@ -27,7 +27,11 @@ COLORDEPTH = 1024
 #save resulting images?
 SAVEIMAGES = False
 
-os.putenv('SDL_FBDEV', '/dev/fb1')
+# For headless pygame
+os.putenv('SDL_VIDEODRIVER', 'dummy')
+
+# For displaying pygame
+#os.putenv('SDL_FBDEV', '/dev/fb1')
 pygame.init()
 
 #initialize the sensor
