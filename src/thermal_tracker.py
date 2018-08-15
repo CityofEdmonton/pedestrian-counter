@@ -111,7 +111,7 @@ frame = 0
 
 #separate process using pexpect to interact with ttn transmission
 def transmit(str):
-	lora = pexpect.spawn('./thethingsnetwork-send-v1')
+	lora = pexpect.spawn('/home/pi/Projects/opencv-python/src/thethingsnetwork-send-v1')
 	while(1):
 		# handle all cases
 		i = lora.expect(['waiting', 'FAILURE', 'not sending', pexpect.TIMEOUT])
