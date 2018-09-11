@@ -7,9 +7,7 @@ import numpy as np
 from scipy.interpolate import griddata
 import cv2
 from colour import Color
-
 from ThermalCamera import ThermalCamera
-from ThermalLoader import ThermalLoader
 from CentroidTracker import CentroidTracker
 
 from multiprocessing import Process, active_children
@@ -24,9 +22,6 @@ FPS = 10
 #how many color values we can have
 COLORDEPTH = 1024
 
-#save resulting images?
-SAVEIMAGES = False
-
 # For headless pygame
 os.putenv('SDL_VIDEODRIVER', 'dummy')
 
@@ -35,9 +30,7 @@ os.putenv('SDL_VIDEODRIVER', 'dummy')
 pygame.init()
 
 #initialize the sensor
-sensor = ThermalCamera(True, "./thermal-data.txt")
-#sensor = ThermalLoader()
-#sensor.load("./src/thermal-top-down.pickle")
+sensor = ThermalCamera()
 
 points = [(math.floor(ix / 8), (ix % 8)) for ix in range(0, 64)]
 grid_x, grid_y = np.mgrid[0:7:32j, 0:7:32j]
@@ -139,10 +132,6 @@ while(True):
 			pygame.draw.rect(lcd, colors[constrain(int(pixel), 0, COLORDEPTH- 1)], (displayPixelHeight * ix, displayPixelWidth * jx, displayPixelHeight, displayPixelWidth))
 	pygame.display.update()
 
-	if SAVEIMAGES:
-		fileName = "./img/heatmap/h" + str(MAXTEMP) + "-l" + str(MINTEMP) + "_" + str(frame) + ".jpeg"
-		outputFile = "./img/detections/h" + str(MAXTEMP) + "-l" + str(MINTEMP) + "_" + str(frame) + ".jpeg"	
-
 	surface = pygame.display.get_surface()
 
 	img = pygame.surfarray.array3d(surface)
@@ -167,8 +156,7 @@ while(True):
 	objects = ct.update(keypoints)
 
 	pygame.display.update()
-#	pygame.image.save(pygame.display.get_surface(), outputFile)
-#	print("Frame: " + str(frame))
+	
 	frame += 1
 	time.sleep(max(1./25 - (time.time() - start), 0))
 
@@ -185,6 +173,4 @@ while(True):
 #	print("Person Count:")
 	print(ct.get_count())
 
-# print("saving thermal data")
-# sensor.save()
 print("terminating...")
