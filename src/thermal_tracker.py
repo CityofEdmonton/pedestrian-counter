@@ -142,7 +142,7 @@ def main():
         surface = pygame.display.get_surface()
 
         img = pygame.surfarray.array3d(surface)
-        img.swapaxes(0, 1)
+        img = np.swapaxes(img, 0, 1)
 
         # Read image
         img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
