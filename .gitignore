@@ -114,3 +114,10 @@ venv.bak/
 
 #generated binary files
 src/thethingsnetwork-send-v1
+
+#images & video
+*.jpeg
+*.mp4
+
+#json files
+*.json
