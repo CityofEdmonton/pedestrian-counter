@@ -1,6 +1,8 @@
 import pygame
 import os
 import math
+import datetime
+from datetime import datetime, date
 import time
 import numpy as np
 from scipy.interpolate import griddata
@@ -13,8 +15,9 @@ import pexpect
 import busio
 import board
 import adafruit_amg88xx
-import functools 
+import functools
 from functools import cmp_to_key
+import json
 # some utility functions
 
 
@@ -25,8 +28,10 @@ def constrain(val, min_val, max_val):
 def map_value(x, in_min, in_max, out_min, out_max):
     return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
 
-#Numerically sorts filenames
-def image_sort (x,y):
+# Numerically sorts filenames
+
+
+def image_sort(x, y):
     x = int(x.split(".")[0])
     y = int(y.split(".")[0])
     return x-y
@@ -34,7 +39,7 @@ def image_sort (x,y):
 
 def main():
 
-    #empty the images folder
+    # empty the images folder
     for filename in os.listdir('../img/'):
         if filename.endswith('.jpeg'):
             os.unlink('../img/' + filename)
@@ -115,8 +120,12 @@ def main():
     time.sleep(.1)
     frame = 0
 
-    #press key to exit 
-    screencap = True 
+    # press key to exit
+    screencap = True
+
+    # json dump
+    data = {}
+    data['sensor_readings'] = []
 
     while(screencap):
         start = time.time()
@@ -125,11 +134,16 @@ def main():
         pixels = []
         for row in sensor.pixels:
             pixels = pixels + row
+
+        data['sensor_readings'].append({
+            'time': datetime.now().isoformat(),
+            'temps': pixels
+        })
         mode_result = stats.mode([round(p) for p in pixels])
 
         if MAXTEMP <= mode_result[0]:
             MAXTEMP = 37
-      
+
         pixels = [map_value(p, mode_result[0]+2, MAXTEMP, 0,
                             COLORDEPTH - 1) for p in pixels]
 
@@ -141,14 +155,14 @@ def main():
             for jx, pixel in enumerate(row):
                 try:
                     pygame.draw.rect(lcd, colors[constrain(int(pixel), 0, COLORDEPTH - 1)],
-                                    (displayPixelHeight * ix, displayPixelWidth * jx, displayPixelHeight, displayPixelWidth))
+                                     (displayPixelHeight * ix, displayPixelWidth * jx, displayPixelHeight, displayPixelWidth))
                 except:
                     pass
         pygame.display.update()
 
         surface = pygame.display.get_surface()
 
-        #frame saving
+        # frame saving
         folder = '../img/'
         filename = str(frame) + '.jpeg'
         pygame.image.save(surface, folder + filename)
@@ -183,11 +197,10 @@ def main():
         frame += 1
         time.sleep(max(1./25 - (time.time() - start), 0))
 
-    #stitch the frames together
+    # stitch the frames together
     dir_path = '../img'
     ext = '.jpeg'
-    
-    
+
     out_index = 0
     while os.path.exists('../video/output%s.mp4' % out_index):
         out_index += 1
@@ -195,26 +208,23 @@ def main():
 
     framerate = 10
 
-
-
-    #get files from directory
+    # get files from directory
     images = []
     for f in os.listdir(dir_path):
         if f.endswith(ext):
             images.append(f)
 
-
-    #sort files
+    # sort files
     images = sorted(images, key=cmp_to_key(image_sort))
 
-    #determine width and height from first image
+    # determine width and height from first image
     image_path = os.path.join(dir_path, images[0])
     frame = cv2.imread(image_path)
-    cv2.imshow('video',frame)
-    height,width, channels = frame.shape
+    cv2.imshow('video', frame)
+    height, width, channels = frame.shape
 
     # Define the codec and create VideoWriter object
-    fourcc = cv2.VideoWriter_fourcc(*'mp4v') # Be sure to use lower case
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # Be sure to use lower case
     out = cv2.VideoWriter(output, fourcc, framerate, (width, height))
 
     for image in images:
@@ -222,15 +232,24 @@ def main():
         image_path = os.path.join(dir_path, image)
         frame = cv2.imread(image_path)
 
-        out.write(frame) # Write out frame to video
+        out.write(frame)  # Write out frame to video
 
-        cv2.imshow('video',frame)
-        if (cv2.waitKey(1) & 0xFF) == ord('q'): # Hit `q` to exit
+        cv2.imshow('video', frame)
+        if (cv2.waitKey(1) & 0xFF) == ord('q'):  # Hit `q` to exit
             break
 
     # Release everything if job is finished
     out.release()
     cv2.destroyAllWindows()
+ 
+    data_index = 0
+    while os.path.exists('../data/data%s.json' % data_index):
+        data_index += 1
+    data_path = str('../data/data%s.json' % data_index)
+
+    with open(data_path, 'w+') as outfile:
+        json.dump(data, outfile, indent=4)
+
 
 if __name__ == "__main__":
     main()
