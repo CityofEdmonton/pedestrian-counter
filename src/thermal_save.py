@@ -1,7 +1,8 @@
-from Adafruit_AMG88xx import Adafruit_AMG88xx
 import pygame
 import os
 import math
+import datetime
+from datetime import datetime, date
 import time
 import numpy as np
 from scipy.interpolate import griddata
@@ -11,7 +12,13 @@ from colour import Color
 from CentroidTracker import CentroidTracker
 from multiprocessing import Process, active_children
 import pexpect
-
+import busio
+import board
+import adafruit_amg88xx
+import functools
+from functools import cmp_to_key
+import json
+import argparse
 # some utility functions
 
 
@@ -22,39 +29,47 @@ def constrain(val, min_val, max_val):
 def map_value(x, in_min, in_max, out_min, out_max):
     return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
 
-# separate process using pexpect to interact with ttn transmission
+# Numerically sorts filenames
 
 
-def transmit(str):
+def image_sort(x, y):
+    x = int(x.split(".")[0])
+    y = int(y.split(".")[0])
+    return x-y
+
+def get_filepath(relative_filepath):
     dir = os.path.dirname(__file__)
-    filename = os.path.join(dir,'./ttn/thethingsnetwork-send-v1')
-    lora = pexpect.spawn(filename)
-    while(1):
-        # handle all cases
-        i = lora.expect(['waiting', 'FAILURE', 'not sending', pexpect.TIMEOUT])
-        if i == 0:
-            lora.sendline(str)
-            print('PedCount updated!')
-        else:
-            print('Lora Failure: retrying...')
-            lora.terminate(force=True)
-            break
+    filename = os.path.join(dir, relative_filepath)
+    return filename 
 
 
 def main():
-    MAXTEMP = 29
+
+    #argument parsing
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("color_depth", help="integer number of colors to use to draw temps", type=int)
+    args = parser.parse_args()
+
+    # empty the images folder
+    for filename in os.listdir(get_filepath('../img/')):
+        if filename.endswith('.jpeg'):
+            os.unlink(get_filepath('../img/') + filename)
+
+    i2c_bus = busio.I2C(board.SCL, board.SDA)
+    MAXTEMP = 31
     # how many color values we can have
-    COLORDEPTH = 1024
+    COLORDEPTH = args.color_depth
 
     # For headless pygame
-    os.putenv('SDL_VIDEODRIVER', 'dummy')
+    #os.putenv('SDL_VIDEODRIVER', 'dummy')
 
     # For displaying pygame
-    #os.putenv('SDL_FBDEV', '/dev/fb1')
+    os.putenv('SDL_FBDEV', '/dev/fb1')
     pygame.init()
 
     # initialize the sensor
-    sensor = Adafruit_AMG88xx()
+    sensor = adafruit_amg88xx.AMG88XX(i2c_bus)
 
     points = [(math.floor(ix / 8), (ix % 8)) for ix in range(0, 64)]
     grid_x, grid_y = np.mgrid[0:7:32j, 0:7:32j]
@@ -117,16 +132,30 @@ def main():
     time.sleep(.1)
     frame = 0
 
-    while(True):
+    # press key to exit
+    screencap = True
+
+    # json dump
+    data = {}
+    data['sensor_readings'] = []
+
+    while(screencap):
         start = time.time()
         # read the pixels
 
         pixels = []
-        pixels = sensor.readPixels()
+        for row in sensor.pixels:
+            pixels = pixels + row
+
+        data['sensor_readings'].append({
+            'time': datetime.now().isoformat(),
+            'temps': pixels
+        })
         mode_result = stats.mode([round(p) for p in pixels])
 
         if MAXTEMP <= mode_result[0]:
             MAXTEMP = 37
+
         pixels = [map_value(p, mode_result[0]+2, MAXTEMP, 0,
                             COLORDEPTH - 1) for p in pixels]
 
@@ -138,12 +167,17 @@ def main():
             for jx, pixel in enumerate(row):
                 try:
                     pygame.draw.rect(lcd, colors[constrain(int(pixel), 0, COLORDEPTH - 1)],
-                                    (displayPixelHeight * ix, displayPixelWidth * jx, displayPixelHeight, displayPixelWidth))
+                                     (displayPixelHeight * ix, displayPixelWidth * jx, displayPixelHeight, displayPixelWidth))
                 except:
-                    print("Caught drawing error")
+                    pass
         pygame.display.update()
 
         surface = pygame.display.get_surface()
+
+        # frame saving
+        folder = get_filepath('../img/')
+        filename = str(frame) + '.jpeg'
+        pygame.image.save(surface, folder + filename)
 
         img = pygame.surfarray.array3d(surface)
         img = np.swapaxes(img, 0, 1)
@@ -167,23 +201,67 @@ def main():
 
         pygame.display.update()
 
+        for event in pygame.event.get():
+            if event.type == pygame.KEYDOWN:
+                print('terminating...')
+                screencap = False
+                break
         frame += 1
         time.sleep(max(1./25 - (time.time() - start), 0))
 
-        # transmit pedcount data every 100 frames
-        if frame == 1 or frame % 100 == 0:
-            # end current lora processes
-            plist = active_children()
-            for p in plist:
-                if p.name == 'lora_proc':
-                    p.terminate()
-            loraproc = Process(
-                target=transmit,  name='lora_proc', args=(str(ct.get_count()),))
-            loraproc.start()
+    # stitch the frames together
+    dir_path = get_filepath('../img/')
+    ext = '.jpeg'
 
-        print(ct.get_count())
+    out_index = 0
+    while os.path.exists(get_filepath('../video/')+'output%s.avi' % out_index):
+        out_index += 1
+    output = str(get_filepath('../video/')+'output%s.avi' % out_index)
 
-    print("terminating...")
+    framerate = 10
+
+    # get files from directory
+    images = []
+    for f in os.listdir(dir_path):
+        if f.endswith(ext):
+            images.append(f)
+
+    # sort files
+    images = sorted(images, key=cmp_to_key(image_sort))
+
+    # determine width and height from first image
+    image_path = os.path.join(dir_path, images[0])
+    frame = cv2.imread(image_path)
+    cv2.imshow('video', frame)
+    height, width, channels = frame.shape
+
+    # Define the codec and create VideoWriter object
+    fourcc = cv2.VideoWriter_fourcc(*'XVID')  # Be sure to use lower case
+    out = cv2.VideoWriter(output, fourcc, framerate, (width, height))
+
+    for image in images:
+
+        image_path = os.path.join(dir_path, image)
+        frame = cv2.imread(image_path)
+
+        out.write(frame)  # Write out frame to video
+
+        cv2.imshow('video', frame)
+        if (cv2.waitKey(1) & 0xFF) == ord('q'):  # Hit `q` to exit
+            print('video created!')
+            break
+
+    # Release everything if job is finished
+    out.release()
+    cv2.destroyAllWindows()
+ 
+    data_index = 0
+    while os.path.exists(get_filepath('../data/') + 'data%s.json' % data_index):
+        data_index += 1
+    data_path = str(get_filepath('../data/') + 'data%s.json' % data_index)
+
+    with open(data_path, 'w+') as outfile:
+        json.dump(data, outfile, indent=4)
 
 
 if __name__ == "__main__":
