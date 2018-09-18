@@ -26,8 +26,9 @@ def map_value(x, in_min, in_max, out_min, out_max):
 
 
 def transmit(str):
-    lora = pexpect.spawn(
-        '/home/pi/Projects/opencv-python/src/thethingsnetwork-send-v1')
+    dir = os.path.dirname(__file__)
+    filename = os.path.join(dir,'./ttn/thethingsnetwork-send-v1')
+    lora = pexpect.spawn(filename)
     while(1):
         # handle all cases
         i = lora.expect(['waiting', 'FAILURE', 'not sending', pexpect.TIMEOUT])
