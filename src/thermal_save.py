@@ -207,9 +207,9 @@ def main():
     ext = '.jpeg'
 
     out_index = 0
-    while os.path.exists(get_filepath('../video/')+'output%s.mp4' % out_index):
+    while os.path.exists(get_filepath('../video/')+'output%s.avi' % out_index):
         out_index += 1
-    output = str(get_filepath('../video/')+'output%s.mp4' % out_index)
+    output = str(get_filepath('../video/')+'output%s.avi' % out_index)
 
     framerate = 10
 
@@ -229,7 +229,7 @@ def main():
     height, width, channels = frame.shape
 
     # Define the codec and create VideoWriter object
-    fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # Be sure to use lower case
+    fourcc = cv2.VideoWriter_fourcc(*'XVID')  # Be sure to use lower case
     out = cv2.VideoWriter(output, fourcc, framerate, (width, height))
 
     for image in images:
@@ -241,6 +241,7 @@ def main():
 
         cv2.imshow('video', frame)
         if (cv2.waitKey(1) & 0xFF) == ord('q'):  # Hit `q` to exit
+            print('video created!')
             break
 
     # Release everything if job is finished
