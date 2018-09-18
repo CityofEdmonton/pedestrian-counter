@@ -136,8 +136,11 @@ def main():
         # draw everything
         for ix, row in enumerate(bicubic):
             for jx, pixel in enumerate(row):
-                pygame.draw.rect(lcd, colors[constrain(int(pixel), 0, COLORDEPTH - 1)],
-                                 (displayPixelHeight * ix, displayPixelWidth * jx, displayPixelHeight, displayPixelWidth))
+                try:
+                    pygame.draw.rect(lcd, colors[constrain(int(pixel), 0, COLORDEPTH - 1)],
+                                    (displayPixelHeight * ix, displayPixelWidth * jx, displayPixelHeight, displayPixelWidth))
+                except:
+                    print("Caught drawing error")
         pygame.display.update()
 
         surface = pygame.display.get_surface()
