@@ -36,13 +36,18 @@ def image_sort(x, y):
     y = int(y.split(".")[0])
     return x-y
 
+def get_filepath(relative_filepath):
+    dir = os.path.dirname(__file__)
+    filename = os.path.join(dir, relative_filepath)
+    return filename 
+
 
 def main():
 
     # empty the images folder
-    for filename in os.listdir('../img/'):
+    for filename in os.listdir(get_filepath('../img/')):
         if filename.endswith('.jpeg'):
-            os.unlink('../img/' + filename)
+            os.unlink(get_filepath('../img/') + filename)
 
     i2c_bus = busio.I2C(board.SCL, board.SDA)
     MAXTEMP = 31
@@ -163,7 +168,7 @@ def main():
         surface = pygame.display.get_surface()
 
         # frame saving
-        folder = '../img/'
+        folder = get_filepath('../img/')
         filename = str(frame) + '.jpeg'
         pygame.image.save(surface, folder + filename)
 
@@ -198,13 +203,13 @@ def main():
         time.sleep(max(1./25 - (time.time() - start), 0))
 
     # stitch the frames together
-    dir_path = '../img'
+    dir_path = get_filepath('../img/')
     ext = '.jpeg'
 
     out_index = 0
-    while os.path.exists('../video/output%s.mp4' % out_index):
+    while os.path.exists(get_filepath('../video/')+'output%s.mp4' % out_index):
         out_index += 1
-    output = str('../video/output%s.mp4' % out_index)
+    output = str(get_filepath('../video/')+'output%s.mp4' % out_index)
 
     framerate = 10
 
@@ -243,9 +248,9 @@ def main():
     cv2.destroyAllWindows()
  
     data_index = 0
-    while os.path.exists('../data/data%s.json' % data_index):
+    while os.path.exists(get_filepath('../data/') + 'data%s.json' % data_index):
         data_index += 1
-    data_path = str('../data/data%s.json' % data_index)
+    data_path = str(get_filepath('../data/') + 'data%s.json' % data_index)
 
     with open(data_path, 'w+') as outfile:
         json.dump(data, outfile, indent=4)
