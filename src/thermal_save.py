@@ -18,6 +18,7 @@ import adafruit_amg88xx
 import functools
 from functools import cmp_to_key
 import json
+import argparse
 # some utility functions
 
 
@@ -44,6 +45,12 @@ def get_filepath(relative_filepath):
 
 def main():
 
+    #argument parsing
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("color_depth", help="integer number of colors to use to draw temps", type=int)
+    args = parser.parse_args()
+
     # empty the images folder
     for filename in os.listdir(get_filepath('../img/')):
         if filename.endswith('.jpeg'):
@@ -52,7 +59,7 @@ def main():
     i2c_bus = busio.I2C(board.SCL, board.SDA)
     MAXTEMP = 31
     # how many color values we can have
-    COLORDEPTH = 1024
+    COLORDEPTH = args.color_depth
 
     # For headless pygame
     #os.putenv('SDL_VIDEODRIVER', 'dummy')
