@@ -51,6 +51,14 @@ def main():
     parser.add_argument("color_depth", help="integer number of colors to use to draw temps", type=int)
     args = parser.parse_args()
 
+    #create data folders if they don't exist
+    if not os.path.exists('../img'):
+        os.makedirs('../img')
+    if not os.path.exists('.../data'):
+        os.makedirs('../data')
+    if not os.path.exists('../video'):
+        os.makedirs('../video')
+
     # empty the images folder
     for filename in os.listdir(get_filepath('../img/')):
         if filename.endswith('.jpeg'):
