@@ -29,29 +29,34 @@ def constrain(val, min_val, max_val):
 def map_value(x, in_min, in_max, out_min, out_max):
     return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
 
-# Numerically sorts filenames
 
 
 def image_sort(x, y):
+    # Numerically sorts filenames
     x = int(x.split(".")[0])
     y = int(y.split(".")[0])
     return x-y
 
+
 def get_filepath(relative_filepath):
+    # function to get the absolute filepath of the file you pass in
     dir = os.path.dirname(__file__)
     filename = os.path.join(dir, relative_filepath)
-    return filename 
+    return filename
 
 
 def main():
 
-    #argument parsing
+    # argument parsing
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("color_depth", help="integer number of colors to use to draw temps", type=int)
+    parser.add_argument(
+        "color_depth", help="integer number of colors to use to draw temps", type=int)
+    parser.add_argument(
+        '--headless', help='run the pygame headlessly', action='store_true')
     args = parser.parse_args()
 
-    #create data folders if they don't exist
+    # create data folders if they don't exist
     if not os.path.exists('../img'):
         os.makedirs('../img')
     if not os.path.exists('.../data'):
@@ -70,10 +75,11 @@ def main():
     COLORDEPTH = args.color_depth
 
     # For headless pygame
-    #os.putenv('SDL_VIDEODRIVER', 'dummy')
+    if args.headless:
+        os.putenv('SDL_VIDEODRIVER', 'dummy')
+    else:
+        os.putenv('SDL_FBDEV', '/dev/fb1')
 
-    # For displaying pygame
-    os.putenv('SDL_FBDEV', '/dev/fb1')
     pygame.init()
 
     # initialize the sensor
@@ -92,7 +98,7 @@ def main():
 
     # create the array of colors
     colors = [(int(c.red * 255), int(c.green * 255), int(c.blue * 255))
-              for c in colors]
+                for c in colors]
 
     displayPixelWidth = width / 30
     displayPixelHeight = height / 30
@@ -146,6 +152,10 @@ def main():
     # json dump
     data = {}
     data['sensor_readings'] = []
+
+    print('sensor started!')
+
+    start_time = time.time()
 
     while(screencap):
         start = time.time()
@@ -209,11 +219,17 @@ def main():
 
         pygame.display.update()
 
-        for event in pygame.event.get():
-            if event.type == pygame.KEYDOWN:
-                print('terminating...')
-                screencap = False
-                break
+        # for event in pygame.event.get():
+        #     if event.type == pygame.KEYDOWN:
+        #         print('terminating...')
+        #         screencap = False
+        #         break
+
+        # for running the save on for a certain amount of time
+        if time.time() - start_time >= 86400:
+            print('terminating...')
+            screencap = False
+
         frame += 1
         time.sleep(max(1./25 - (time.time() - start), 0))
 
@@ -262,7 +278,7 @@ def main():
     # Release everything if job is finished
     out.release()
     cv2.destroyAllWindows()
- 
+
     data_index = 0
     while os.path.exists(get_filepath('../data/') + 'data%s.json' % data_index):
         data_index += 1

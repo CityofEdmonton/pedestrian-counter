@@ -11,6 +11,10 @@ from colour import Color
 from CentroidTracker import CentroidTracker
 from multiprocessing import Process, active_children
 import pexpect
+import argparse
+import busio
+import board
+import adafruit_amg88xx
 
 # some utility functions
 
@@ -42,19 +46,27 @@ def transmit(str):
 
 
 def main():
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--headless', help='run the pygame headlessly', action='store_true')
+    args = parser.parse_args()
+
+    i2c_bus = busio.I2C(board.SCL, board.SDA)
+
     MAXTEMP = 29
     # how many color values we can have
     COLORDEPTH = 1024
+    
+    if args.headless: 
+        os.putenv('SDL_VIDEODRIVER', 'dummy')
+    else:
+        os.putenv('SDL_FBDEV', '/dev/fb1')
 
-    # For headless pygame
-    os.putenv('SDL_VIDEODRIVER', 'dummy')
-
-    # For displaying pygame
-    #os.putenv('SDL_FBDEV', '/dev/fb1')
+    
     pygame.init()
 
     # initialize the sensor
-    sensor = Adafruit_AMG88xx()
+    sensor = adafruit_amg88xx.AMG88XX(i2c_bus)
 
     points = [(math.floor(ix / 8), (ix % 8)) for ix in range(0, 64)]
     grid_x, grid_y = np.mgrid[0:7:32j, 0:7:32j]
@@ -69,7 +81,7 @@ def main():
 
     # create the array of colors
     colors = [(int(c.red * 255), int(c.green * 255), int(c.blue * 255))
-              for c in colors]
+                for c in colors]
 
     displayPixelWidth = width / 30
     displayPixelHeight = height / 30
@@ -122,7 +134,10 @@ def main():
         # read the pixels
 
         pixels = []
-        pixels = sensor.readPixels()
+
+        for row in sensor.pixels:
+            pixels = pixels + row
+            
         mode_result = stats.mode([round(p) for p in pixels])
 
         if MAXTEMP <= mode_result[0]:
