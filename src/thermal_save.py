@@ -167,7 +167,8 @@ def main():
 
         data['sensor_readings'].append({
             'time': datetime.now().isoformat(),
-            'temps': pixels
+            'temps': pixels,
+            'count': ct.get_count()
         })
         mode_result = stats.mode([round(p) for p in pixels])
 
