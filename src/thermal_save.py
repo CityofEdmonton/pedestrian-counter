@@ -136,7 +136,6 @@ def main():
 
     # let the sensor initialize
     time.sleep(.1)
-    frame = 0
 
     # press key to exit
     screencap = True
@@ -144,6 +143,9 @@ def main():
     # json dump
     data = {}
     data['sensor_readings'] = []
+
+    # array to hold mode of last 10 minutes of temperatures
+    mode_list = []
 
     print('sensor started!')
 
@@ -163,11 +165,12 @@ def main():
             'count': ct.get_count()
         })
         mode_result = stats.mode([round(p) for p in pixels])
+        mode_list.append(int(mode_result[0]))
+        
 
-        if MAXTEMP <= mode_result[0] and MAXTEMP <= 38:
-            MAXTEMP += 1
-
-        pixels = [map_value(p, mode_result[0]+2, MAXTEMP, 0,
+        # instead of taking the ambient temperature over one frame of data take it over a set amount of time
+        MAXTEMP = float(np.mean(mode_list)) + 9
+        pixels = [map_value(p, np.mean(mode_list) + 2, MAXTEMP, 0,
                             COLORDEPTH - 1) for p in pixels]
 
         # perform interpolation
@@ -212,18 +215,21 @@ def main():
 
         pygame.display.update()
 
-        # for event in pygame.event.get():
-        #     if event.type == pygame.KEYDOWN:
-        #         print('terminating...')
-        #         screencap = False
-        #         break
+        for event in pygame.event.get():
+            if event.type == pygame.KEYDOWN:
+                print('terminating...')
+                screencap = False
+                break
+
 
         # for running the save on for a certain amount of time
-        if time.time() - start_time >= 86400:
-            print('terminating...')
-            screencap = False
+        #if time.time() - start_time >= 10:
+        #    print('terminating...')
+        #    screencap = False
 
-        frame += 1
+        # empty mode_list every 10 seconds to get current ambient temperature
+        if len(mode_list) > 100:
+            mode_list = []
         time.sleep(max(1./25 - (time.time() - start), 0))
 
     # write raw sensor data to file
