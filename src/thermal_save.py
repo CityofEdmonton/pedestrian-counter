@@ -233,6 +233,15 @@ def main():
         frame += 1
         time.sleep(max(1./25 - (time.time() - start), 0))
 
+    # write raw sensor data to file
+    data_index = 0
+    while os.path.exists(get_filepath('../data/') + 'data%s.json' % data_index):
+        data_index += 1
+    data_path = str(get_filepath('../data/') + 'data%s.json' % data_index)
+
+    with open(data_path, 'w+') as outfile:
+        json.dump(data, outfile, indent=4)
+
     # stitch the frames together
     dir_path = get_filepath('../img/')
     ext = '.jpeg'
@@ -279,13 +288,6 @@ def main():
     out.release()
     cv2.destroyAllWindows()
 
-    data_index = 0
-    while os.path.exists(get_filepath('../data/') + 'data%s.json' % data_index):
-        data_index += 1
-    data_path = str(get_filepath('../data/') + 'data%s.json' % data_index)
-
-    with open(data_path, 'w+') as outfile:
-        json.dump(data, outfile, indent=4)
 
 
 if __name__ == "__main__":
