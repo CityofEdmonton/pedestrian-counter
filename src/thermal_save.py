@@ -30,14 +30,6 @@ def map_value(x, in_min, in_max, out_min, out_max):
     return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
 
 
-
-def image_sort(x, y):
-    # Numerically sorts filenames
-    x = int(x.split(".")[0])
-    y = int(y.split(".")[0])
-    return x-y
-
-
 def get_filepath(relative_filepath):
     # function to get the absolute filepath of the file you pass in
     dir = os.path.dirname(__file__)
@@ -159,8 +151,8 @@ def main():
 
     while(screencap):
         start = time.time()
+        date = datetime.utcnow()
         # read the pixels
-
         pixels = []
         for row in sensor.pixels:
             pixels = pixels + row
@@ -195,7 +187,7 @@ def main():
 
         # frame saving
         folder = get_filepath('../img/')
-        filename = str(frame) + '.jpeg'
+        filename = str(date) + '.jpeg'
         pygame.image.save(surface, folder + filename)
 
         img = pygame.surfarray.array3d(surface)
@@ -261,8 +253,7 @@ def main():
             images.append(f)
 
     # sort files
-    images = sorted(images, key=cmp_to_key(image_sort))
-
+    images = sorted(images, key= lambda x:datetime.strptime(x.split('.j')[0] , '%Y-%m-%d %H:%M:%S.%f'))
     # determine width and height from first image
     image_path = os.path.join(dir_path, images[0])
     frame = cv2.imread(image_path)
