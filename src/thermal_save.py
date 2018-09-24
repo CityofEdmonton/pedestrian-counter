@@ -59,7 +59,7 @@ def main():
     # create data folders if they don't exist
     if not os.path.exists('../img'):
         os.makedirs('../img')
-    if not os.path.exists('.../data'):
+    if not os.path.exists('../data'):
         os.makedirs('../data')
     if not os.path.exists('../video'):
         os.makedirs('../video')
