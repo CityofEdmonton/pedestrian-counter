@@ -171,8 +171,8 @@ def main():
         })
         mode_result = stats.mode([round(p) for p in pixels])
 
-        if MAXTEMP <= mode_result[0]:
-            MAXTEMP = 37
+        if MAXTEMP <= mode_result[0] and MAXTEMP <= 38:
+            MAXTEMP += 1
 
         pixels = [map_value(p, mode_result[0]+2, MAXTEMP, 0,
                             COLORDEPTH - 1) for p in pixels]
