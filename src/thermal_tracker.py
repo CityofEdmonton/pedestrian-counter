@@ -55,9 +55,10 @@ def main():
 
     i2c_bus = busio.I2C(board.SCL, board.SDA)
 
-    MAXTEMP = 29
-    # how many color values we can have
-    COLORDEPTH = args.color_depth
+    MAXTEMP = 31 # initial max temperature
+    COLORDEPTH = args.color_depth # how many color values we can have
+    AMBIENT_OFFSET = 9 # value to offset ambient temperature by to get rolling MAXTEMP
+    AMBIENT_TIME = 3000 # length of ambient temperature collecting intervals increments of 0.1 seconds
     
     if args.headless: 
         os.putenv('SDL_VIDEODRIVER', 'dummy')
@@ -107,7 +108,7 @@ def main():
 
     # # Filter by Area.
     params.filterByArea = True
-    params.minArea = 5
+    params.minArea = 250
 
     # # Filter by Circularity
     params.filterByCircularity = True
@@ -145,8 +146,8 @@ def main():
         mode_list.append(int(mode_result[0]))
 
 
-        MAXTEMP_OFFSET = 9
-        MAXTEMP = float(np.mean(mode_list)) +  MAXTEMP_OFFSET
+
+        MAXTEMP = float(np.mean(mode_list)) +  AMBIENT_OFFSET
         pixels = [map_value(p, mode_result[0]+2, MAXTEMP, 0,
                             COLORDEPTH - 1) for p in pixels]
 
@@ -202,7 +203,7 @@ def main():
             loraproc.start()
         
         #empty mode_list every 10 seconds to get current ambient temperature
-        if len(mode_list) > 100:
+        if len(mode_list) > AMBIENT_TIME:
             mode_list = []
         print(ct.get_count())
 

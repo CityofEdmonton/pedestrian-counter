@@ -9,9 +9,9 @@ else
     source $DIR/$1/bin/activate #ped-detector is the name of your virtual env
     echo "Running the pedestrian detector"
     if [ "$2" == "--headless" ]; then
-        python $DIR/src/thermal_tracker.py --headless
+        python $DIR/src/thermal_tracker.py 1024 --headless
     else 
-        python $DIR/src/thermal_tracker.python
+        python $DIR/src/thermal_tracker.py 1024
     fi
 fi
 

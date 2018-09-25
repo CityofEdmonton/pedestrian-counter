@@ -51,7 +51,7 @@ def main():
     MAXTEMP = 31 # initial max temperature
     COLORDEPTH = args.color_depth # how many color values we can have
     AMBIENT_OFFSET = 9 # value to offset ambient temperature by to get rolling MAXTEMP
-    AMBIENT_TIME = 100 # length of ambient temperature collecting intervals in seconds
+    AMBIENT_TIME = 3000 # length of ambient temperature collecting intervals in seconds
 
     # create data folders if they don't exist
     if not os.path.exists(get_filepath('../img')):
