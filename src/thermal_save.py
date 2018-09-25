@@ -39,7 +39,7 @@ def get_filepath(relative_filepath):
 
 def main():
 
-    # argument parsing
+     # argument parsing
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -48,13 +48,18 @@ def main():
         '--headless', help='run the pygame headlessly', action='store_true')
     args = parser.parse_args()
 
+    MAXTEMP = 31 # initial max temperature
+    COLORDEPTH = args.color_depth # how many color values we can have
+    AMBIENT_OFFSET = 9 # value to offset ambient temperature by to get rolling MAXTEMP
+    AMBIENT_TIME = 100 # length of ambient temperature collecting intervals in seconds
+
     # create data folders if they don't exist
-    if not os.path.exists('../img'):
-        os.makedirs('../img')
-    if not os.path.exists('../data'):
-        os.makedirs('../data')
-    if not os.path.exists('../video'):
-        os.makedirs('../video')
+    if not os.path.exists(get_filepath('../img')):
+        os.makedirs(get_filepath('../img'))
+    if not os.path.exists(get_filepath('../data')):
+        os.makedirs(get_filepath('../data'))
+    if not os.path.exists(get_filepath('../video')):
+        os.makedirs(get_filepath('../video'))
 
     # empty the images folder
     for filename in os.listdir(get_filepath('../img/')):
@@ -62,9 +67,7 @@ def main():
             os.unlink(get_filepath('../img/') + filename)
 
     i2c_bus = busio.I2C(board.SCL, board.SDA)
-    MAXTEMP = 31
-    # how many color values we can have
-    COLORDEPTH = args.color_depth
+    
 
     # For headless pygame
     if args.headless:
@@ -114,7 +117,7 @@ def main():
 
     # # Filter by Area.
     params.filterByArea = True
-    params.minArea = 5
+    params.minArea = 250
 
     # # Filter by Circularity
     params.filterByCircularity = True
@@ -153,7 +156,7 @@ def main():
 
     while(screencap):
         start = time.time()
-        date = datetime.utcnow()
+        date = datetime.now()
         # read the pixels
         pixels = []
         for row in sensor.pixels:
@@ -169,7 +172,7 @@ def main():
         
 
         # instead of taking the ambient temperature over one frame of data take it over a set amount of time
-        MAXTEMP = float(np.mean(mode_list)) + 9
+        MAXTEMP = float(np.mean(mode_list)) + AMBIENT_OFFSET
         pixels = [map_value(p, np.mean(mode_list) + 2, MAXTEMP, 0,
                             COLORDEPTH - 1) for p in pixels]
 
@@ -183,7 +186,7 @@ def main():
                     pygame.draw.rect(lcd, colors[constrain(int(pixel), 0, COLORDEPTH - 1)],
                                      (displayPixelHeight * ix, displayPixelWidth * jx, displayPixelHeight, displayPixelWidth))
                 except:
-                    pass
+                    print("Caught drawing error")
         pygame.display.update()
 
         surface = pygame.display.get_surface()
@@ -222,13 +225,13 @@ def main():
                 break
 
 
-        # for running the save on for a certain amount of time
+        ## for running the save on for a certain amount of time
         #if time.time() - start_time >= 10:
         #    print('terminating...')
         #    screencap = False
 
-        # empty mode_list every 10 seconds to get current ambient temperature
-        if len(mode_list) > 100:
+        # empty mode_list every AMBIENT_TIME seconds 
+        if len(mode_list) > AMBIENT_TIME:
             mode_list = []
         time.sleep(max(1./25 - (time.time() - start), 0))
 
@@ -263,7 +266,8 @@ def main():
     # determine width and height from first image
     image_path = os.path.join(dir_path, images[0])
     frame = cv2.imread(image_path)
-    cv2.imshow('video', frame)
+    if not args.headless:
+        cv2.imshow('video', frame)
     height, width, channels = frame.shape
 
     # Define the codec and create VideoWriter object
@@ -277,10 +281,12 @@ def main():
 
         out.write(frame)  # Write out frame to video
 
-        cv2.imshow('video', frame)
-        if (cv2.waitKey(1) & 0xFF) == ord('q'):  # Hit `q` to exit
-            print('video created!')
-            break
+
+        if not args.headless:
+            cv2.imshow('video', frame)
+            if (cv2.waitKey(1) & 0xFF) == ord('q'):  # Hit `q` to exit
+                print('video created!')
+                break
 
     # Release everything if job is finished
     out.release()
