@@ -48,6 +48,8 @@ def transmit(str):
 def main():
 
     parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "color_depth", help="integer number of colors to use to draw temps", type=int)
     parser.add_argument('--headless', help='run the pygame headlessly', action='store_true')
     args = parser.parse_args()
 
@@ -55,7 +57,7 @@ def main():
 
     MAXTEMP = 29
     # how many color values we can have
-    COLORDEPTH = 1024
+    COLORDEPTH = args.color_depth
     
     if args.headless: 
         os.putenv('SDL_VIDEODRIVER', 'dummy')
@@ -128,6 +130,7 @@ def main():
     # let the sensor initialize
     time.sleep(.1)
     frame = 0
+    mode_list = []
 
     while(True):
         start = time.time()
@@ -139,9 +142,11 @@ def main():
             pixels = pixels + row
             
         mode_result = stats.mode([round(p) for p in pixels])
+        mode_list.append(int(mode_result[0]))
 
-        if MAXTEMP <= mode_result[0]:
-            MAXTEMP = 37
+
+        MAXTEMP_OFFSET = 9
+        MAXTEMP = float(np.mean(mode_list)) +  MAXTEMP_OFFSET
         pixels = [map_value(p, mode_result[0]+2, MAXTEMP, 0,
                             COLORDEPTH - 1) for p in pixels]
 
@@ -195,7 +200,10 @@ def main():
             loraproc = Process(
                 target=transmit,  name='lora_proc', args=(str(ct.get_count()),))
             loraproc.start()
-
+        
+        #empty mode_list every 10 seconds to get current ambient temperature
+        if len(mode_list) > 100:
+            mode_list = []
         print(ct.get_count())
 
     print("terminating...")
