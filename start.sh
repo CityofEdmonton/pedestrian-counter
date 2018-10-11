@@ -1,6 +1,6 @@
 #!/bin/bash
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
-
+sudo gpsd /dev/ttyS0 -F /var/run/gpsd.sock
 
 if [ -z "$1" ]; then
     echo "Pass virtual env directory as argument"
@@ -11,7 +11,7 @@ else
     if [ "$2" == "--headless" ]; then
         python $DIR/src/thermal_tracker.py 1024 --headless
     else 
-        python $DIR/src/thermal_tracker.py 1024
+        python $DIR/src/thermal_tracker.py  1024
     fi
 fi
 
