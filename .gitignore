@@ -111,3 +111,13 @@ venv.bak/
 .mypy_cache/
 .DS_Store
 .vscode/settings.json
+
+#generated binary files
+src/thethingsnetwork-send-v1
+
+#images & video
+*.jpeg
+*.mp4
+
+#json files
+*.json

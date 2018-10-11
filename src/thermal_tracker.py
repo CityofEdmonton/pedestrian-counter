@@ -3,188 +3,230 @@ import pygame
 import os
 import math
 import time
+import datetime
+from datetime import datetime, date
 import numpy as np
 from scipy.interpolate import griddata
+from scipy import stats
 import cv2
 from colour import Color
-
-from ThermalCamera import ThermalCamera
-from ThermalLoader import ThermalLoader
 from CentroidTracker import CentroidTracker
-
 from multiprocessing import Process, active_children
 import pexpect
+import argparse
+import busio
+import board
+import adafruit_amg88xx
+import binascii
+import json
+import gpsd
+# some utility functions
 
-#The preferred # of frames per second.
-FPS = 10
 
-#MINTEMP = 26
-#MAXTEMP = 30
-
-#how many color values we can have
-COLORDEPTH = 1024
-
-#save resulting images?
-SAVEIMAGES = False
-
-# For headless pygame
-os.putenv('SDL_VIDEODRIVER', 'dummy')
-
-# For displaying pygame
-#os.putenv('SDL_FBDEV', '/dev/fb1')
-pygame.init()
-
-#initialize the sensor
-sensor = ThermalCamera(True, "./thermal-data.txt")
-#sensor = ThermalLoader()
-#sensor.load("./src/thermal-top-down.pickle")
-
-points = [(math.floor(ix / 8), (ix % 8)) for ix in range(0, 64)]
-grid_x, grid_y = np.mgrid[0:7:32j, 0:7:32j]
-
-#sensor is an 8x8 grid so lets do a square
-height = 240
-width = 240
-
-#the list of colors we can choose from
-blue = Color("indigo")
-detectionColor = Color("red")
-colors = list(blue.range_to(Color("red"), COLORDEPTH))
-
-#create the array of colors
-colors = [(int(c.red * 255), int(c.green * 255), int(c.blue * 255)) for c in colors]
-
-displayPixelWidth = width / 30
-displayPixelHeight = height / 30
-
-lcd = pygame.display.set_mode((width, height))
-
-lcd.fill((255,0,0))
-
-pygame.display.update()
-pygame.mouse.set_visible(False)
-
-lcd.fill((0,0,0))
-pygame.display.update()
-
-#TODO: Remove me
-# Prepare the OpenCV blob detector. For now, this only works when saving an image.
-# Setup SimpleBlobDetector parameters.
-params = cv2.SimpleBlobDetector_Params()
-
-# # Change thresholds
-params.minThreshold = 10
-params.maxThreshold = 255
-
-# # Filter by Area.
-params.filterByArea = True
-params.minArea = 5
-
-# # Filter by Circularity
-params.filterByCircularity = True
-params.minCircularity = 0.1
-
-# # Filter by Convexity
-params.filterByConvexity = False
-params.minConvexity = 0.87
-
-# # Filter by Inertia
-params.filterByInertia = False
-params.minInertiaRatio = 0.01
-
-# # Set up the detector with default parameters.
-detector = cv2.SimpleBlobDetector_create(params)
-
-#initialize centroid tracker
-ct = CentroidTracker()
-
-#some utility functions
 def constrain(val, min_val, max_val):
-  return min(max_val, max(min_val, val))
+    return min(max_val, max(min_val, val))
 
-def map(x, in_min, in_max, out_min, out_max):
-  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
 
-#let the sensor initialize
-time.sleep(.1)
-frame = 0
+def map_value(x, in_min, in_max, out_min, out_max):
+    return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
 
-#separate process using pexpect to interact with ttn transmission
+# separate process using pexpect to interact with ttn transmission
+
+
 def transmit(str):
-	lora = pexpect.spawn('/home/pi/Projects/opencv-python/src/thethingsnetwork-send-v1')
-	while(1):
-		# handle all cases
-		i = lora.expect(['waiting', 'FAILURE', 'not sending', pexpect.TIMEOUT])
-		if i == 0:
-			lora.sendline(str)
-			print ('PedCount updated!')
-		else:
-			print ('Lora Failure: retrying...')
-			lora.terminate(force=True)
-			break
+    dir = os.path.dirname(__file__)
+    filename = os.path.join(dir,'./ttn/thethingsnetwork-send-v1')
+    lora = pexpect.spawn(filename)
+    while(1):
+        # handle all cases
+        i = lora.expect(['waiting', 'FAILURE', 'not sending', pexpect.TIMEOUT,pexpect.EOF])
+        if i == 0:
+            lora.sendline(str)
+            print('PedCount updated!')
+        else:
+            print('Lora Failure: retrying...')
+            lora.terminate(force=True)
+            break
 
-while(True):
-	start = time.time()
-	#read the pixels
-	pixels = sensor.get()
-	#print(pixels)
+def main():
 
-	#perform interpolation
-	bicubic = griddata(points, pixels, (grid_x, grid_y), method='cubic')
-	#print(bicubic)
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "color_depth", help="integer number of colors to use to draw temps", type=int)
+    parser.add_argument('--headless', help='run the pygame headlessly', action='store_true')
+    args = parser.parse_args()
+    gpsd.connect()
+    i2c_bus = busio.I2C(board.SCL, board.SDA)
 
-	#draw everything
-	for ix, row in enumerate(bicubic):
-		for jx, pixel in enumerate(row):
-			pygame.draw.rect(lcd, colors[constrain(int(pixel), 0, COLORDEPTH- 1)], (displayPixelHeight * ix, displayPixelWidth * jx, displayPixelHeight, displayPixelWidth))
-	pygame.display.update()
+    MAXTEMP = 29 # initial max temperature
+    COLORDEPTH = args.color_depth # how many color values we can have
+    AMBIENT_OFFSET = 9 # value to offset ambient temperature by to get rolling MAXTEMP
+    AMBIENT_TIME = 100 # length of ambient temperature collecting intervals increments of 0.1 seconds
+    
+    if args.headless: 
+        os.putenv('SDL_VIDEODRIVER', 'dummy')
+    else:
+        os.putenv('SDL_FBDEV', '/dev/fb1')
 
-	if SAVEIMAGES:
-		fileName = "./img/heatmap/h" + str(MAXTEMP) + "-l" + str(MINTEMP) + "_" + str(frame) + ".jpeg"
-		outputFile = "./img/detections/h" + str(MAXTEMP) + "-l" + str(MINTEMP) + "_" + str(frame) + ".jpeg"	
+    
+    pygame.init()
 
-	surface = pygame.display.get_surface()
+    # initialize the sensor
+    sensor = adafruit_amg88xx.AMG88XX(i2c_bus)
 
-	img = pygame.surfarray.array3d(surface)
-	img.swapaxes(0,1)
+    points = [(math.floor(ix / 8), (ix % 8)) for ix in range(0, 64)]
+    grid_x, grid_y = np.mgrid[0:7:32j, 0:7:32j]
+
+    # sensor is an 8x8 grid so lets do a square
+    height = 240
+    width = 240
+
+    # the list of colors we can choose from
+    blue = Color("indigo")
+    colors = list(blue.range_to(Color("red"), COLORDEPTH))
+
+    # create the array of colors
+    colors = [(int(c.red * 255), int(c.green * 255), int(c.blue * 255))
+                for c in colors]
+
+    displayPixelWidth = width / 30
+    displayPixelHeight = height / 30
+
+    lcd = pygame.display.set_mode((width, height))
+
+    lcd.fill((255, 0, 0))
+
+    pygame.display.update()
+    pygame.mouse.set_visible(False)
+
+    lcd.fill((0, 0, 0))
+    pygame.display.update()
+
+    # Setup SimpleBlobDetector parameters.
+    params = cv2.SimpleBlobDetector_Params()
+
+    # # Change thresholds
+    params.minThreshold = 10
+    params.maxThreshold = 255
+
+    # # Filter by Area.
+    params.filterByArea = True
+    params.minArea = 250
+
+    # # Filter by Circularity
+    params.filterByCircularity = True
+    params.minCircularity = 0.1
+
+    # # Filter by Convexity
+    params.filterByConvexity = False
+    params.minConvexity = 0.87
+
+    # # Filter by Inertia
+    params.filterByInertia = False
+    params.minInertiaRatio = 0.01
+
+    # # Set up the detector with default parameters.
+    detector = cv2.SimpleBlobDetector_create(params)
+
+    # initialize centroid tracker
+    ct = CentroidTracker()
+
+    # let the sensor initialize
+    time.sleep(.1)
+    frame = 0
+    mode_list = []
+
+    #json dump
+    data = {
+        'c':0,
+        'lo':0,
+        'la':0,
+    }
+
+    while(True):
+        start = time.time()
+        # read the pixels
+
+        pixels = []
+
+        for row in sensor.pixels:
+            pixels = pixels + row
+            
+        mode_result = stats.mode([round(p) for p in pixels])
+        mode_list.append(int(mode_result[0]))
 
 
-	# Read image
-	img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-	img = cv2.bitwise_not(img)
 
-	# Detect blobs.
-	keypoints = detector.detect(img)
+        MAXTEMP = float(np.mean(mode_list)) +  AMBIENT_OFFSET
+        pixels = [map_value(p, mode_result[0]+2, MAXTEMP, 0,
+                            COLORDEPTH - 1) for p in pixels]
 
-	for i in range (0, len(keypoints)):
-	 	x = keypoints[i].pt[0]
-	 	y = keypoints[i].pt[1]
+        # perform interpolation
+        bicubic = griddata(points, pixels, (grid_x, grid_y), method='cubic')
 
-	 	# print little circle
-	 	pygame.draw.circle(lcd, (200, 0, 0), (int(x), int(y)), 7, 3)
-		
-	# update  our centroid tracker using the detected centroids
-	objects = ct.update(keypoints)
+        # draw everything
+        for ix, row in enumerate(bicubic):
+            for jx, pixel in enumerate(row):
+                try:
+                    pygame.draw.rect(lcd, colors[constrain(int(pixel), 0, COLORDEPTH - 1)],
+                                    (displayPixelHeight * ix, displayPixelWidth * jx, displayPixelHeight, displayPixelWidth))
+                except:
+                    print("Caught drawing error")
+        pygame.display.update()
 
-	pygame.display.update()
-#	pygame.image.save(pygame.display.get_surface(), outputFile)
-#	print("Frame: " + str(frame))
-	frame += 1
-	time.sleep(max(1./25 - (time.time() - start), 0))
+        surface = pygame.display.get_surface()
 
-	# transmit pedcount data every 100 frames
-	if frame == 1 or frame % 100 == 0:
-		# end current lora processes
-		plist = active_children()
-		for p in plist:
-			if p.name == 'lora_proc':
-				p.terminate()
-		loraproc = Process(target=transmit,  name='lora_proc', args = (str(ct.get_count()),))
-		loraproc.start()
-	
-#	print("Person Count:")
-	print(ct.get_count())
+        img = pygame.surfarray.array3d(surface)
+        img = np.swapaxes(img, 0, 1)
 
-# print("saving thermal data")
-# sensor.save()
-print("terminating...")
+        # Read image
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        img = cv2.bitwise_not(img)
+
+        # Detect blobs.
+        keypoints = detector.detect(img)
+
+        for i in range(0, len(keypoints)):
+            x = keypoints[i].pt[0]
+            y = keypoints[i].pt[1]
+
+            # print little circle
+            pygame.draw.circle(lcd, (200, 0, 0), (int(x), int(y)), 7, 3)
+
+        # update  our centroid tracker using the detected centroids
+        ct.update(keypoints)
+
+        pygame.display.update()
+
+        frame += 1
+        time.sleep(max(1./25 - (time.time() - start), 0))
+        packet = gpsd.get_current()
+
+        data['c'] = ct.get_count()
+
+        if gpsd.get_current().mode > 1:
+            longitude = packet.position()[0]
+            latitude = packet.position()[1]
+            data['lo'] = round(longitude,4)
+            data['la'] = round(latitude,4)
+        
+        # transmit pedcount data every 100 frames
+        if frame == 1 or frame % 100 == 0:
+            # end current lora processes
+            plist = active_children()
+            for p in plist:
+                if p.name == 'lora_proc':
+                    p.terminate()
+            loraproc = Process(
+                target=transmit,  name='lora_proc', args=(json.dumps(data) ,))
+            loraproc.start()
+        
+        #empty mode_list every 10 seconds to get current ambient temperature
+        if len(mode_list) > AMBIENT_TIME:
+            mode_list = []
+
+    print("terminating...")
+
+
+if __name__ == "__main__":
+    main()
