@@ -281,13 +281,12 @@ def main():
 
         out.write(frame)  # Write out frame to video
 
-
         if not args.headless:
             cv2.imshow('video', frame)
             if (cv2.waitKey(1) & 0xFF) == ord('q'):  # Hit `q` to exit
-                print('video created!')
                 break
-
+                
+    print('video created!')
     # Release everything if job is finished
     out.release()
     cv2.destroyAllWindows()
