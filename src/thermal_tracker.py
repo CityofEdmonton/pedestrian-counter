@@ -3,6 +3,8 @@ import pygame
 import os
 import math
 import time
+import datetime
+from datetime import datetime, date
 import numpy as np
 from scipy.interpolate import griddata
 from scipy import stats
@@ -15,7 +17,9 @@ import argparse
 import busio
 import board
 import adafruit_amg88xx
-
+import binascii
+import json
+import gpsd
 # some utility functions
 
 
@@ -35,7 +39,7 @@ def transmit(str):
     lora = pexpect.spawn(filename)
     while(1):
         # handle all cases
-        i = lora.expect(['waiting', 'FAILURE', 'not sending', pexpect.TIMEOUT])
+        i = lora.expect(['waiting', 'FAILURE', 'not sending', pexpect.TIMEOUT,pexpect.EOF])
         if i == 0:
             lora.sendline(str)
             print('PedCount updated!')
@@ -44,7 +48,6 @@ def transmit(str):
             lora.terminate(force=True)
             break
 
-
 def main():
 
     parser = argparse.ArgumentParser()
@@ -52,13 +55,13 @@ def main():
         "color_depth", help="integer number of colors to use to draw temps", type=int)
     parser.add_argument('--headless', help='run the pygame headlessly', action='store_true')
     args = parser.parse_args()
-
+    gpsd.connect()
     i2c_bus = busio.I2C(board.SCL, board.SDA)
 
-    MAXTEMP = 31 # initial max temperature
+    MAXTEMP = 29 # initial max temperature
     COLORDEPTH = args.color_depth # how many color values we can have
     AMBIENT_OFFSET = 9 # value to offset ambient temperature by to get rolling MAXTEMP
-    AMBIENT_TIME = 3000 # length of ambient temperature collecting intervals increments of 0.1 seconds
+    AMBIENT_TIME = 100 # length of ambient temperature collecting intervals increments of 0.1 seconds
     
     if args.headless: 
         os.putenv('SDL_VIDEODRIVER', 'dummy')
@@ -133,6 +136,13 @@ def main():
     frame = 0
     mode_list = []
 
+    #json dump
+    data = {
+        'c':0,
+        'lo':0,
+        'la':0,
+    }
+
     while(True):
         start = time.time()
         # read the pixels
@@ -190,7 +200,16 @@ def main():
 
         frame += 1
         time.sleep(max(1./25 - (time.time() - start), 0))
+        packet = gpsd.get_current()
 
+        data['c'] = ct.get_count()
+
+        if gpsd.get_current().mode > 1:
+            longitude = packet.position()[0]
+            latitude = packet.position()[1]
+            data['lo'] = round(longitude,4)
+            data['la'] = round(latitude,4)
+        
         # transmit pedcount data every 100 frames
         if frame == 1 or frame % 100 == 0:
             # end current lora processes
@@ -199,13 +218,12 @@ def main():
                 if p.name == 'lora_proc':
                     p.terminate()
             loraproc = Process(
-                target=transmit,  name='lora_proc', args=(str(ct.get_count()),))
+                target=transmit,  name='lora_proc', args=(json.dumps(data) ,))
             loraproc.start()
         
         #empty mode_list every 10 seconds to get current ambient temperature
         if len(mode_list) > AMBIENT_TIME:
             mode_list = []
-        print(ct.get_count())
 
     print("terminating...")
 
