@@ -33,11 +33,12 @@ def map_value(x, in_min, in_max, out_min, out_max):
 
 def transmit(str):
     dir = os.path.dirname(__file__)
-    filename = os.path.join(dir,'./ttn/thethingsnetwork-send-v1')
+    filename = os.path.join(dir, './ttn/thethingsnetwork-send-v1')
     lora = pexpect.spawn(filename)
     while(1):
         # handle all cases
-        i = lora.expect(['waiting', 'FAILURE', 'not sending', pexpect.TIMEOUT,pexpect.EOF])
+        i = lora.expect(['waiting', 'FAILURE', 'not sending',
+                        pexpect.TIMEOUT, pexpect.EOF])
         if i == 0:
             lora.sendline(str)
             print('PedCount updated!')
@@ -46,14 +47,14 @@ def transmit(str):
         else:
             print('Lora Failure: retrying...')
 
-            
-def send_lora(payload,delay):
+
+def send_lora(payload, delay):
     while True:
         for child in active_children():
             if child.name == 'lora_proc':
                 child.terminate()
         loraproc = Process(
-                target=transmit, name='lora_proc', args=(payload, ))
+            target=transmit, name='lora_proc', args=(payload, ))
         loraproc.start()
         time.sleep(delay)
 
@@ -63,23 +64,24 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "color_depth", help="integer number of colors to use to draw temps", type=int)
-    parser.add_argument('--headless', help='run the pygame headlessly', action='store_true')
+    parser.add_argument(
+        '--headless', help='run the pygame headlessly', action='store_true')
     args = parser.parse_args()
     gpsd.connect()
     i2c_bus = busio.I2C(board.SCL, board.SDA)
 
-    MAXTEMP = 29 # initial max temperature
-    COLORDEPTH = args.color_depth # how many color values we can have
-    AMBIENT_OFFSET = 9 # value to offset ambient temperature by to get rolling MAXTEMP
-    AMBIENT_TIME = 100 # length of ambient temperature collecting intervals increments of 0.1 seconds
-    LORA_SEND_INTERVAL = 5 # length of intervals between attempted lora uplinks in seconds
-    
-    if args.headless: 
+    MAXTEMP = 29  # initial max temperature
+    COLORDEPTH = args.color_depth  # how many color values we can have
+    AMBIENT_OFFSET = 9  # value to offset ambient temperature by to get rolling MAXTEMP
+    # length of ambient temperature collecting intervals increments of 0.1 seconds
+    AMBIENT_TIME = 100
+    LORA_SEND_INTERVAL = 5  # length of intervals between attempted lora uplinks in seconds
+
+    if args.headless:
         os.putenv('SDL_VIDEODRIVER', 'dummy')
     else:
         os.putenv('SDL_FBDEV', '/dev/fb1')
 
-    
     pygame.init()
 
     # initialize the sensor
@@ -98,7 +100,7 @@ def main():
 
     # create the array of colors
     colors = [(int(c.red * 255), int(c.green * 255), int(c.blue * 255))
-                for c in colors]
+            for c in colors]
 
     displayPixelWidth = width / 30
     displayPixelHeight = height / 30
@@ -147,14 +149,15 @@ def main():
     frame = 0
     mode_list = []
 
-    #json dump
+    # json dump
     data = {
-        'c':0,
-        'lo':0,
-        'la':0,
+        'c': 0,
+        'lo': 0,
+        'la': 0,
     }
-    
-    send_thread = threading.Thread(target=send_lora,args=(json.dumps(data), LORA_SEND_INTERVAL))
+
+    send_thread = threading.Thread(target=send_lora, args=(
+        json.dumps(data), LORA_SEND_INTERVAL))
     send_thread.start()
 
     while(True):
@@ -165,13 +168,11 @@ def main():
 
         for row in sensor.pixels:
             pixels = pixels + row
-            
+
         mode_result = stats.mode([round(p) for p in pixels])
         mode_list.append(int(mode_result[0]))
 
-
-
-        MAXTEMP = float(np.mean(mode_list)) +  AMBIENT_OFFSET
+        MAXTEMP = float(np.mean(mode_list)) + AMBIENT_OFFSET
         pixels = [map_value(p, mode_result[0]+2, MAXTEMP, 0,
                             COLORDEPTH - 1) for p in pixels]
 
@@ -183,7 +184,7 @@ def main():
             for jx, pixel in enumerate(row):
                 try:
                     pygame.draw.rect(lcd, colors[constrain(int(pixel), 0, COLORDEPTH - 1)],
-                                    (displayPixelHeight * ix, displayPixelWidth * jx, displayPixelHeight, displayPixelWidth))
+                                     (displayPixelHeight * ix, displayPixelWidth * jx, displayPixelHeight, displayPixelWidth))
                 except:
                     print("Caught drawing error")
         pygame.display.update()
@@ -221,14 +222,15 @@ def main():
         if gpsd.get_current().mode > 1:
             longitude = packet.position()[0]
             latitude = packet.position()[1]
-            data['lo'] = round(longitude,4)
-            data['la'] = round(latitude,4)
-        
-        #empty mode_list every 10 seconds to get current ambient temperature
+            data['lo'] = round(longitude, 4)
+            data['la'] = round(latitude, 4)
+
+        # empty mode_list every 10 seconds to get current ambient temperature
         if len(mode_list) > AMBIENT_TIME:
             mode_list = []
 
     print("terminating...")
+
 
 if __name__ == "__main__":
     main()
