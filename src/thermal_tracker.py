@@ -41,10 +41,10 @@ def transmit(str):
         if i == 0:
             lora.sendline(str)
             print('PedCount updated!')
-        else:
-            print('Lora Failure: retrying...')
             lora.terminate(force=True)
             break
+        else:
+            print('Lora Failure: retrying...')
 
 def main():
 
