@@ -46,6 +46,18 @@ def transmit(str):
         else:
             print('Lora Failure: retrying...')
 
+            
+def send_lora(payload,delay):
+    while True:
+        for child in active_children():
+            if child.name == 'lora_proc':
+                child.terminate()
+        loraproc = Process(
+                target=transmit, name='lora_proc', args=(payload, ))
+        loraproc.start()
+        time.sleep(delay)
+
+
 def main():
 
     parser = argparse.ArgumentParser()
@@ -60,6 +72,7 @@ def main():
     COLORDEPTH = args.color_depth # how many color values we can have
     AMBIENT_OFFSET = 9 # value to offset ambient temperature by to get rolling MAXTEMP
     AMBIENT_TIME = 100 # length of ambient temperature collecting intervals increments of 0.1 seconds
+    LORA_SEND_INTERVAL = 5 # length of intervals between attempted lora uplinks in seconds
     
     if args.headless: 
         os.putenv('SDL_VIDEODRIVER', 'dummy')
@@ -140,6 +153,9 @@ def main():
         'lo':0,
         'la':0,
     }
+    
+    send_thread = threading.Thread(target=send_lora,args=(json.dumps(data), LORA_SEND_INTERVAL))
+    send_thread.start()
 
     while(True):
         start = time.time()
@@ -208,23 +224,11 @@ def main():
             data['lo'] = round(longitude,4)
             data['la'] = round(latitude,4)
         
-        # transmit pedcount data every 100 frames
-        if frame == 1 or frame % 100 == 0:
-            # end current lora processes
-            plist = active_children()
-            for p in plist:
-                if p.name == 'lora_proc':
-                    p.terminate()
-            loraproc = Process(
-                target=transmit,  name='lora_proc', args=(json.dumps(data) ,))
-            loraproc.start()
-        
         #empty mode_list every 10 seconds to get current ambient temperature
         if len(mode_list) > AMBIENT_TIME:
             mode_list = []
 
     print("terminating...")
-
 
 if __name__ == "__main__":
     main()
