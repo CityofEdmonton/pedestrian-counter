@@ -1,9 +1,7 @@
-from Adafruit_AMG88xx import Adafruit_AMG88xx
 import pygame
 import os
 import math
 import time
-import datetime
 from datetime import datetime, date
 import numpy as np
 from scipy.interpolate import griddata
@@ -17,9 +15,9 @@ import argparse
 import busio
 import board
 import adafruit_amg88xx
-import binascii
 import json
 import gpsd
+import threading
 # some utility functions
 
 
