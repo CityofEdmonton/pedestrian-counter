@@ -18,6 +18,7 @@ import adafruit_amg88xx
 import json
 import gpsd
 import threading
+import sys
 # some utility functions
 
 
@@ -41,14 +42,15 @@ def transmit(str):
                         pexpect.TIMEOUT, pexpect.EOF])
         if i == 0:
             lora.sendline(str)
-            print('PedCount updated!')
+            print('PedCount updated!\n')
             lora.terminate(force=True)
             break
         else:
             print('Lora Failure: retrying...')
 
 
-def send_lora(payload, delay):
+def send_lora(delay):
+    global payload
     while True:
         for child in active_children():
             if child.name == 'lora_proc':
@@ -57,10 +59,12 @@ def send_lora(payload, delay):
             target=transmit, name='lora_proc', args=(payload, ))
         loraproc.start()
         time.sleep(delay)
+        
+payload = ''
 
 
 def main():
-
+    global payload
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "color_depth", help="integer number of colors to use to draw temps", type=int)
@@ -75,7 +79,7 @@ def main():
     AMBIENT_OFFSET = 9  # value to offset ambient temperature by to get rolling MAXTEMP
     # length of ambient temperature collecting intervals increments of 0.1 seconds
     AMBIENT_TIME = 100
-    LORA_SEND_INTERVAL = 5  # length of intervals between attempted lora uplinks in seconds
+    LORA_SEND_INTERVAL = 1  # length of intervals between attempted lora uplinks in seconds
 
     if args.headless:
         os.putenv('SDL_VIDEODRIVER', 'dummy')
@@ -149,15 +153,7 @@ def main():
     frame = 0
     mode_list = []
 
-    # json dump
-    data = {
-        'c': 0,
-        'lo': 0,
-        'la': 0,
-    }
-
-    send_thread = threading.Thread(target=send_lora, args=(
-        json.dumps(data), LORA_SEND_INTERVAL))
+    send_thread = threading.Thread(target=send_lora, args=(LORA_SEND_INTERVAL ,))
     send_thread.start()
 
     while(True):
@@ -215,17 +211,22 @@ def main():
 
         frame += 1
         time.sleep(max(1./25 - (time.time() - start), 0))
-        packet = gpsd.get_current()
-
-        data['c'] = ct.get_count()
 
         if gpsd.get_current().mode > 1:
-            longitude = packet.position()[0]
-            latitude = packet.position()[1]
-            data['lo'] = round(longitude, 4)
-            data['la'] = round(latitude, 4)
+            packet = gpsd.get_current()
+            latitude = int(abs(round(packet.position()[0],4))*1000)
+            longitude = int(abs(round(packet.position()[1],4))*1000)
+            long_bytes = longitude.to_bytes(4,sys.byteorder)
+            lat_bytes = latitude.to_bytes(4,sys.byteorder)
+        else:
+            long_bytes = int(0).to_bytes(4,sys.byteorder)
+            lat_bytes = int(0).to_bytes(4,sys.byteorder)
 
-        # empty mode_list every 10 seconds to get current ambient temperature
+        count = ct.get_count()
+        count_bytes = count.to_bytes(8,sys.byteorder)
+        payload = count_bytes + lat_bytes + long_bytes
+
+        # empty mode_list every AMBIENT_TIME *10 seconds to get current ambient temperature
         if len(mode_list) > AMBIENT_TIME:
             mode_list = []
 
