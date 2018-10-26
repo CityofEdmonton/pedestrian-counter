@@ -78,7 +78,7 @@ void os_getDevKey(u1_t *buf)
 }
 
 u4_t cntr = 0;
-std::vector<u1_t> mydata;
+u1_t mydata[16];
 static osjob_t sendjob;
 
 // Pin mapping
@@ -117,10 +117,10 @@ void readData()
     char buf[16];
     fprintf(stdout, "waiting");
     fgets(buf, 16, stdin);
-    int i = 0;
+    int i;
     for (i = 0; i < 16; i++)
     {
-        mydata.push_back(buf[i]);
+        mydata[i] = buf[i];
     }
 }
 
@@ -138,10 +138,7 @@ static void do_send(osjob_t *j)
     else
     {
         readData();
-        unsigned char arr[mydata.size()];
-        std::copy(mydata.begin(), mydata.end(), arr);
-        LMIC_setTxData2(1, arr, sizeof(arr), 0);
-        std::fill(mydata.begin(), mydata.end(), 0);
+        LMIC_setTxData2(1, mydata, sizeof(mydata), 0);
     }
     // Schedule a timed job to run at the given timestamp (absolute system time)
     os_setTimedCallback(j, os_getTime() + sec2osticks(15), do_send);
