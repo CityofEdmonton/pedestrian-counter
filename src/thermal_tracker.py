@@ -212,8 +212,9 @@ def main():
         frame += 1
         time.sleep(max(1./25 - (time.time() - start), 0))
 
-        if gpsd.get_current().mode > 1:
-            packet = gpsd.get_current()
+        packet = gpsd.get_current()
+
+        if packet.mode >= 2: #if gps has a 2D or 3D fix
             latitude = int(abs(round(packet.position()[0],4))*1000)
             longitude = int(abs(round(packet.position()[1],4))*1000)
             long_bytes = longitude.to_bytes(4,sys.byteorder)
