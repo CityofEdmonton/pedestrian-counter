@@ -150,7 +150,6 @@ def main():
 
     # let the sensor initialize
     time.sleep(.1)
-    frame = 0
     mode_list = []
 
     send_thread = threading.Thread(target=send_lora, args=(LORA_SEND_INTERVAL ,))
@@ -209,7 +208,6 @@ def main():
 
         pygame.display.update()
 
-        frame += 1
         time.sleep(max(1./25 - (time.time() - start), 0))
 
         packet = gpsd.get_current()
