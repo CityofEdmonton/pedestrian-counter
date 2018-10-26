@@ -48,10 +48,10 @@ def main():
         '--headless', help='run the pygame headlessly', action='store_true')
     args = parser.parse_args()
 
-    MAXTEMP = 31 # initial max temperature
-    COLORDEPTH = args.color_depth # how many color values we can have
-    AMBIENT_OFFSET = 9 # value to offset ambient temperature by to get rolling MAXTEMP
-    AMBIENT_TIME = 3000 # length of ambient temperature collecting intervals in seconds
+    MAXTEMP = 31  # initial max temperature
+    COLORDEPTH = args.color_depth  # how many color values we can have
+    AMBIENT_OFFSET = 9  # value to offset ambient temperature by to get rolling MAXTEMP
+    AMBIENT_TIME = 3000  # length of ambient temperature collecting intervals in seconds
 
     # create data folders if they don't exist
     if not os.path.exists(get_filepath('../img')):
@@ -67,7 +67,6 @@ def main():
             os.unlink(get_filepath('../img/') + filename)
 
     i2c_bus = busio.I2C(board.SCL, board.SDA)
-    
 
     # For headless pygame
     if args.headless:
@@ -93,7 +92,7 @@ def main():
 
     # create the array of colors
     colors = [(int(c.red * 255), int(c.green * 255), int(c.blue * 255))
-                for c in colors]
+              for c in colors]
 
     displayPixelWidth = width / 30
     displayPixelHeight = height / 30
@@ -169,7 +168,6 @@ def main():
         })
         mode_result = stats.mode([round(p) for p in pixels])
         mode_list.append(int(mode_result[0]))
-        
 
         # instead of taking the ambient temperature over one frame of data take it over a set amount of time
         MAXTEMP = float(np.mean(mode_list)) + AMBIENT_OFFSET
@@ -224,13 +222,12 @@ def main():
                 screencap = False
                 break
 
-
-        ## for running the save on for a certain amount of time
-        #if time.time() - start_time >= 10:
+        # for running the save on for a certain amount of time
+        # if time.time() - start_time >= 10:
         #    print('terminating...')
         #    screencap = False
 
-        # empty mode_list every AMBIENT_TIME seconds 
+        # empty mode_list every AMBIENT_TIME seconds
         if len(mode_list) > AMBIENT_TIME:
             mode_list = []
         time.sleep(max(1./25 - (time.time() - start), 0))
@@ -262,7 +259,8 @@ def main():
             images.append(f)
 
     # sort files
-    images = sorted(images, key= lambda x:datetime.strptime(x.split('.j')[0] , '%Y-%m-%d %H:%M:%S.%f'))
+    images = sorted(images, key=lambda x: datetime.strptime(
+        x.split('.j')[0], '%Y-%m-%d %H:%M:%S.%f'))
     # determine width and height from first image
     image_path = os.path.join(dir_path, images[0])
     frame = cv2.imread(image_path)
@@ -285,12 +283,11 @@ def main():
             cv2.imshow('video', frame)
             if (cv2.waitKey(1) & 0xFF) == ord('q'):  # Hit `q` to exit
                 break
-                
+
     print('video created!')
     # Release everything if job is finished
     out.release()
     cv2.destroyAllWindows()
-
 
 
 if __name__ == "__main__":
