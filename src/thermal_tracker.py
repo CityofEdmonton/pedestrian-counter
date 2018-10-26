@@ -39,7 +39,7 @@ def transmit(str):
     while(1):
         # handle all cases
         i = lora.expect(['waiting', 'FAILURE', 'not sending',
-                        pexpect.TIMEOUT, pexpect.EOF])
+                         pexpect.TIMEOUT, pexpect.EOF])
         if i == 0:
             lora.sendline(str)
             print('PedCount updated!\n')
@@ -59,7 +59,8 @@ def send_lora(delay):
             target=transmit, name='lora_proc', args=(payload, ))
         loraproc.start()
         time.sleep(delay)
-        
+
+
 payload = ''
 
 
@@ -104,7 +105,7 @@ def main():
 
     # create the array of colors
     colors = [(int(c.red * 255), int(c.green * 255), int(c.blue * 255))
-            for c in colors]
+              for c in colors]
 
     displayPixelWidth = width / 30
     displayPixelHeight = height / 30
@@ -152,7 +153,8 @@ def main():
     time.sleep(.1)
     mode_list = []
 
-    send_thread = threading.Thread(target=send_lora, args=(LORA_SEND_INTERVAL ,))
+    send_thread = threading.Thread(
+        target=send_lora, args=(LORA_SEND_INTERVAL,))
     send_thread.start()
 
     while(True):
@@ -212,17 +214,17 @@ def main():
 
         packet = gpsd.get_current()
 
-        if packet.mode >= 2: #if gps has a 2D or 3D fix
-            latitude = int(abs(round(packet.position()[0],4))*1000)
-            longitude = int(abs(round(packet.position()[1],4))*1000)
-            long_bytes = longitude.to_bytes(4,sys.byteorder)
-            lat_bytes = latitude.to_bytes(4,sys.byteorder)
+        if packet.mode >= 2:  # if gps has a 2D or 3D fix
+            latitude = int(abs(round(packet.position()[0], 4))*1000)
+            longitude = int(abs(round(packet.position()[1], 4))*1000)
+            long_bytes = longitude.to_bytes(4, sys.byteorder)
+            lat_bytes = latitude.to_bytes(4, sys.byteorder)
         else:
-            long_bytes = int(0).to_bytes(4,sys.byteorder)
-            lat_bytes = int(0).to_bytes(4,sys.byteorder)
+            long_bytes = int(0).to_bytes(4, sys.byteorder)
+            lat_bytes = int(0).to_bytes(4, sys.byteorder)
 
         count = ct.get_count()
-        count_bytes = count.to_bytes(8,sys.byteorder)
+        count_bytes = count.to_bytes(8, sys.byteorder)
         payload = count_bytes + lat_bytes + long_bytes
 
         # empty mode_list every AMBIENT_TIME *10 seconds to get current ambient temperature

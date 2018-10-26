@@ -164,8 +164,8 @@ void setup()
     LMIC_disableTracking();
     // Stop listening for downstream data (periodical reception)
     LMIC_stopPingable();
-    // Set data rate and transmit power (note: txpow seems to be ignored by the library)  
-    LMIC_setDrTxpow(DR_SF7,14);
+    // Set data rate and transmit power (note: txpow seems to be ignored by the library)
+    LMIC_setDrTxpow(DR_SF7, 14);
     // TTN uses SF9 for its RX2 window
     LMIC.dn2Dr = DR_SF9;
 }
