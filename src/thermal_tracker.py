@@ -1,9 +1,7 @@
-from Adafruit_AMG88xx import Adafruit_AMG88xx
 import pygame
 import os
 import math
 import time
-import datetime
 from datetime import datetime, date
 import numpy as np
 from scipy.interpolate import griddata
@@ -17,9 +15,10 @@ import argparse
 import busio
 import board
 import adafruit_amg88xx
-import binascii
 import json
 import gpsd
+import threading
+import sys
 # some utility functions
 
 
@@ -35,40 +34,58 @@ def map_value(x, in_min, in_max, out_min, out_max):
 
 def transmit(str):
     dir = os.path.dirname(__file__)
-    filename = os.path.join(dir,'./ttn/thethingsnetwork-send-v1')
+    filename = os.path.join(dir, './ttn/thethingsnetwork-send-v1')
     lora = pexpect.spawn(filename)
     while(1):
         # handle all cases
-        i = lora.expect(['waiting', 'FAILURE', 'not sending', pexpect.TIMEOUT,pexpect.EOF])
+        i = lora.expect(['waiting', 'FAILURE', 'not sending',
+                        pexpect.TIMEOUT, pexpect.EOF])
         if i == 0:
             lora.sendline(str)
-            print('PedCount updated!')
-        else:
-            print('Lora Failure: retrying...')
+            print('PedCount updated!\n')
             lora.terminate(force=True)
             break
+        else:
+            print('Lora Failure: retrying...')
+
+
+def send_lora(delay):
+    global payload
+    while True:
+        for child in active_children():
+            if child.name == 'lora_proc':
+                child.terminate()
+        loraproc = Process(
+            target=transmit, name='lora_proc', args=(payload, ))
+        loraproc.start()
+        time.sleep(delay)
+        
+payload = ''
+
 
 def main():
-
+    global payload
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "color_depth", help="integer number of colors to use to draw temps", type=int)
-    parser.add_argument('--headless', help='run the pygame headlessly', action='store_true')
+    parser.add_argument(
+        '--headless', help='run the pygame headlessly', action='store_true')
     args = parser.parse_args()
     gpsd.connect()
     i2c_bus = busio.I2C(board.SCL, board.SDA)
 
-    MAXTEMP = 29 # initial max temperature
-    COLORDEPTH = args.color_depth # how many color values we can have
-    AMBIENT_OFFSET = 9 # value to offset ambient temperature by to get rolling MAXTEMP
-    AMBIENT_TIME = 100 # length of ambient temperature collecting intervals increments of 0.1 seconds
-    
-    if args.headless: 
+    MAXTEMP = 29  # initial max temperature
+    COLORDEPTH = args.color_depth  # how many color values we can have
+    AMBIENT_OFFSET = 9  # value to offset ambient temperature by to get rolling MAXTEMP
+    # length of ambient temperature collecting intervals increments of 0.1 seconds
+    AMBIENT_TIME = 100
+    LORA_SEND_INTERVAL = 1  # length of intervals between attempted lora uplinks in seconds
+
+    if args.headless:
         os.putenv('SDL_VIDEODRIVER', 'dummy')
     else:
         os.putenv('SDL_FBDEV', '/dev/fb1')
 
-    
     pygame.init()
 
     # initialize the sensor
@@ -87,7 +104,7 @@ def main():
 
     # create the array of colors
     colors = [(int(c.red * 255), int(c.green * 255), int(c.blue * 255))
-                for c in colors]
+            for c in colors]
 
     displayPixelWidth = width / 30
     displayPixelHeight = height / 30
@@ -136,12 +153,8 @@ def main():
     frame = 0
     mode_list = []
 
-    #json dump
-    data = {
-        'c':0,
-        'lo':0,
-        'la':0,
-    }
+    send_thread = threading.Thread(target=send_lora, args=(LORA_SEND_INTERVAL ,))
+    send_thread.start()
 
     while(True):
         start = time.time()
@@ -151,13 +164,11 @@ def main():
 
         for row in sensor.pixels:
             pixels = pixels + row
-            
+
         mode_result = stats.mode([round(p) for p in pixels])
         mode_list.append(int(mode_result[0]))
 
-
-
-        MAXTEMP = float(np.mean(mode_list)) +  AMBIENT_OFFSET
+        MAXTEMP = float(np.mean(mode_list)) + AMBIENT_OFFSET
         pixels = [map_value(p, mode_result[0]+2, MAXTEMP, 0,
                             COLORDEPTH - 1) for p in pixels]
 
@@ -169,7 +180,7 @@ def main():
             for jx, pixel in enumerate(row):
                 try:
                     pygame.draw.rect(lcd, colors[constrain(int(pixel), 0, COLORDEPTH - 1)],
-                                    (displayPixelHeight * ix, displayPixelWidth * jx, displayPixelHeight, displayPixelWidth))
+                                     (displayPixelHeight * ix, displayPixelWidth * jx, displayPixelHeight, displayPixelWidth))
                 except:
                     print("Caught drawing error")
         pygame.display.update()
@@ -200,28 +211,22 @@ def main():
 
         frame += 1
         time.sleep(max(1./25 - (time.time() - start), 0))
-        packet = gpsd.get_current()
-
-        data['c'] = ct.get_count()
 
         if gpsd.get_current().mode > 1:
-            longitude = packet.position()[0]
-            latitude = packet.position()[1]
-            data['lo'] = round(longitude,4)
-            data['la'] = round(latitude,4)
-        
-        # transmit pedcount data every 100 frames
-        if frame == 1 or frame % 100 == 0:
-            # end current lora processes
-            plist = active_children()
-            for p in plist:
-                if p.name == 'lora_proc':
-                    p.terminate()
-            loraproc = Process(
-                target=transmit,  name='lora_proc', args=(json.dumps(data) ,))
-            loraproc.start()
-        
-        #empty mode_list every 10 seconds to get current ambient temperature
+            packet = gpsd.get_current()
+            latitude = int(abs(round(packet.position()[0],4))*1000)
+            longitude = int(abs(round(packet.position()[1],4))*1000)
+            long_bytes = longitude.to_bytes(4,sys.byteorder)
+            lat_bytes = latitude.to_bytes(4,sys.byteorder)
+        else:
+            long_bytes = int(0).to_bytes(4,sys.byteorder)
+            lat_bytes = int(0).to_bytes(4,sys.byteorder)
+
+        count = ct.get_count()
+        count_bytes = count.to_bytes(8,sys.byteorder)
+        payload = count_bytes + lat_bytes + long_bytes
+
+        # empty mode_list every AMBIENT_TIME *10 seconds to get current ambient temperature
         if len(mode_list) > AMBIENT_TIME:
             mode_list = []
 

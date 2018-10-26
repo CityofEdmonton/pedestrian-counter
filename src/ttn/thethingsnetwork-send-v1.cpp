@@ -114,19 +114,19 @@ void onEvent(ev_t ev)
 // used to read data from python program
 void readData()
 {
-    char buf[51];
+    char buf[16];
     fprintf(stdout, "waiting");
-    fgets(buf, 51, stdin);
+    fgets(buf, 16, stdin);
     int i = 0;
-    while (buf[i])
+    for (i = 0; i < 16; i++)
     {
         mydata.push_back(buf[i]);
-        i++;
     }
 }
 
 static void do_send(osjob_t *j)
 {
+
     time_t t = time(NULL);
     fprintf(stdout, "[%x] (%ld) %s\n", hal_ticks(), t, ctime(&t));
     // Show TX channel (channel numbers are local to LMIC)
@@ -141,6 +141,7 @@ static void do_send(osjob_t *j)
         unsigned char arr[mydata.size()];
         std::copy(mydata.begin(), mydata.end(), arr);
         LMIC_setTxData2(1, arr, sizeof(arr), 0);
+        std::fill(mydata.begin(), mydata.end(), 0);
     }
     // Schedule a timed job to run at the given timestamp (absolute system time)
     os_setTimedCallback(j, os_getTime() + sec2osticks(15), do_send);
