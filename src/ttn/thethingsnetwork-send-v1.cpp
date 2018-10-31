@@ -37,23 +37,23 @@ using namespace std;
 
 // LoRaWAN Application identifier (AppEUI)
 // Not used in this example
-static const u1_t APPEUI[8] = {0x02, 0x00, 0x00, 0x00, 0x00, 0xEE, 0xFF, 0xC0};
+static const u1_t APPEUI[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
 // LoRaWAN DevEUI, unique device ID (LSBF)
 // Not used in this example
-static const u1_t DEVEUI[8] = {0x42, 0x42, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF};
+static const u1_t DEVEUI[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
 // LoRaWAN NwkSKey, network session key
 // Use this key for The Things Network
-static const u1_t DEVKEY[16] = {0x8A, 0x2A, 0xD0, 0xE6, 0xBE, 0x4F, 0x77, 0x58, 0xD3, 0xB1, 0xB6, 0x04, 0x03, 0xD4, 0xAB, 0xAA};
+static const u1_t DEVKEY[16] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
 // LoRaWAN AppSKey, application session key
 // Use this key to get your data decrypted by The Things Network
-static const u1_t ARTKEY[16] = {0xBF, 0x43, 0xCA, 0x95, 0x98, 0x38, 0x54, 0xC1, 0xA6, 0x8F, 0xA0, 0x46, 0xAD, 0x04, 0xF3, 0xC5};
+static const u1_t ARTKEY[16] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
 // LoRaWAN end-device address (DevAddr)
 // See http://thethingsnetwork.org/wiki/AddressSpace
-static const u4_t DEVADDR = 0x26021CD9; // <-- Change this address for every node!
+static const u4_t DEVADDR = 0x00000000; // <-- Change this address for every node!
 
 //////////////////////////////////////////////////
 // APPLICATION CALLBACKS
@@ -78,7 +78,7 @@ void os_getDevKey(u1_t *buf)
 }
 
 u4_t cntr = 0;
-std::vector<u1_t> mydata;
+u1_t mydata[16];
 static osjob_t sendjob;
 
 // Pin mapping
@@ -117,10 +117,10 @@ void readData()
     char buf[16];
     fprintf(stdout, "waiting");
     fgets(buf, 16, stdin);
-    int i = 0;
+    int i;
     for (i = 0; i < 16; i++)
     {
-        mydata.push_back(buf[i]);
+        mydata[i] = buf[i];
     }
 }
 
@@ -138,10 +138,7 @@ static void do_send(osjob_t *j)
     else
     {
         readData();
-        unsigned char arr[mydata.size()];
-        std::copy(mydata.begin(), mydata.end(), arr);
-        LMIC_setTxData2(1, arr, sizeof(arr), 0);
-        std::fill(mydata.begin(), mydata.end(), 0);
+        LMIC_setTxData2(1, mydata, sizeof(mydata), 0);
     }
     // Schedule a timed job to run at the given timestamp (absolute system time)
     os_setTimedCallback(j, os_getTime() + sec2osticks(15), do_send);
@@ -167,7 +164,8 @@ void setup()
     LMIC_disableTracking();
     // Stop listening for downstream data (periodical reception)
     LMIC_stopPingable();
-    // Set data rate and transmit power (note: txpow seems to be ignored by the library)  LMIC_setDrTxpow(DR_SF7,14);
+    // Set data rate and transmit power (note: txpow seems to be ignored by the library)
+    LMIC_setDrTxpow(DR_SF7, 14);
     // TTN uses SF9 for its RX2 window
     LMIC.dn2Dr = DR_SF9;
 }

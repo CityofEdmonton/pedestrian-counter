@@ -3,8 +3,11 @@ Description=Pedestrian counter
 After=multi-user.target
 
 [Service]
-Type=idle
-ExecStart=/home/pi/Projects/opencv-python/start.sh
+Type=simple
+User=pi
+ExecStart=/home/pi/pedestrian-counter/start.sh ped-detector --headless
+Restart=always
+
 
 [Install]
 WantedBy=multi-user.target
