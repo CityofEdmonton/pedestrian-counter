@@ -56,12 +56,14 @@ def send_lora(delay):
             if child.name == 'lora_proc':
                 child.terminate()
         loraproc = Process(
-            target=transmit, name='lora_proc', args=(payload, ))
+            target=transmit, name='lora_proc', args=(json.dumps(payload), ))
         loraproc.start()
         time.sleep(delay)
 
-
-payload = ''
+# a - latitude
+# o - longitude
+# c - count
+payload = {'a': 0, 'o': 0, 'c': 0}
 
 
 def main():
@@ -214,18 +216,9 @@ def main():
 
         packet = gpsd.get_current()
 
-        if packet.mode >= 2:  # if gps has a 2D or 3D fix
-            latitude = int(abs(round(packet.position()[0], 4))*1000)
-            longitude = int(abs(round(packet.position()[1], 4))*1000)
-            long_bytes = longitude.to_bytes(4, sys.byteorder)
-            lat_bytes = latitude.to_bytes(4, sys.byteorder)
-        else:
-            long_bytes = int(0).to_bytes(4, sys.byteorder)
-            lat_bytes = int(0).to_bytes(4, sys.byteorder)
-
-        count = ct.get_count()
-        count_bytes = count.to_bytes(8, sys.byteorder)
-        payload = count_bytes + lat_bytes + long_bytes
+        payload['a'] = round(packet.lat, 3)
+        payload['o'] = round(packet.lon, 3)
+        payload['c'] = ct.get_count()
 
         # empty mode_list every AMBIENT_TIME *10 seconds to get current ambient temperature
         if len(mode_list) > AMBIENT_TIME:
