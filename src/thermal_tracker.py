@@ -60,7 +60,9 @@ def send_lora(delay):
         loraproc.start()
         time.sleep(delay)
 
-
+# a - latitude
+# o - longitude
+# c - count
 payload = {'a': 0, 'o': 0, 'c': 0}
 
 
