@@ -102,8 +102,8 @@ def main():
     width = 240
 
     # the list of colors we can choose from
-    blue = Color("indigo")
-    colors = list(blue.range_to(Color("red"), COLORDEPTH))
+    blue = Color("blue")
+    colors = list(blue.range_to(Color("yellow"), COLORDEPTH))
 
     # create the array of colors
     colors = [(int(c.red * 255), int(c.green * 255), int(c.blue * 255))
