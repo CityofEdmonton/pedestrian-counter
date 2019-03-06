@@ -139,22 +139,15 @@ def main():
 
     print('sensor started!')
 
-    start_time = time.time()
-
     while(screencap):
         start = time.time()
-        date = datetime.now()
+        
         # read the pixels
         pixels = []
         for row in sensor.pixels:
             pixels = pixels + row
 
-        # data['sensor_readings'].append({
-        #     'time': datetime.now().isoformat(),
-        #     'temps': pixels,
-        #     'count': ct.get_count()
-        # })
-
+        # append row to csv
         time_now = str(datetime.now().isoformat())
         count = ct.get_count()
             # open the csv file
@@ -229,15 +222,6 @@ def main():
         if len(mode_list) > AMBIENT_TIME:
             mode_list = []
         time.sleep(max(1./25 - (time.time() - start), 0))
-
-    # # write raw sensor data to file
-    # data_index = 0
-    # while os.path.exists(get_filepath('../data/') + 'data%s.json' % data_index):
-    #     data_index += 1
-    # data_path = str(get_filepath('../data/') + 'data%s.json' % data_index)
-
-    # with open(data_path, 'w+') as outfile:
-    #     json.dump(data, outfile, indent=4)
 
     # Release everything if job is finished
     cv2.destroyAllWindows()
