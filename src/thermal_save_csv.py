@@ -19,6 +19,7 @@ import functools
 from functools import cmp_to_key
 import json
 import argparse
+import csv
 # some utility functions
 
 
@@ -133,10 +134,6 @@ def main():
     # press key to exit
     screencap = True
 
-    # json dump
-    data = {}
-    data['sensor_readings'] = []
-
     # array to hold mode of last 10 minutes of temperatures
     mode_list = []
 
@@ -152,11 +149,20 @@ def main():
         for row in sensor.pixels:
             pixels = pixels + row
 
-        data['sensor_readings'].append({
-            'time': datetime.now().isoformat(),
-            'temps': pixels,
-            'count': ct.get_count()
-        })
+        # data['sensor_readings'].append({
+        #     'time': datetime.now().isoformat(),
+        #     'temps': pixels,
+        #     'count': ct.get_count()
+        # })
+
+        time = str(datetime.now().isoformat())
+        count = ct.get_count()
+            # open the csv file
+        datapath = str(get_filepath('../data/') + 'data.csv')
+        with open(datapath, 'a') as f:
+            writer = csv.writer(f)
+            writer.writerow([time, count])
+
         mode_result = stats.mode([round(p) for p in pixels])
         mode_list.append(int(mode_result[0]))
 
@@ -224,14 +230,14 @@ def main():
             mode_list = []
         time.sleep(max(1./25 - (time.time() - start), 0))
 
-    # write raw sensor data to file
-    data_index = 0
-    while os.path.exists(get_filepath('../data/') + 'data%s.json' % data_index):
-        data_index += 1
-    data_path = str(get_filepath('../data/') + 'data%s.json' % data_index)
+    # # write raw sensor data to file
+    # data_index = 0
+    # while os.path.exists(get_filepath('../data/') + 'data%s.json' % data_index):
+    #     data_index += 1
+    # data_path = str(get_filepath('../data/') + 'data%s.json' % data_index)
 
-    with open(data_path, 'w+') as outfile:
-        json.dump(data, outfile, indent=4)
+    # with open(data_path, 'w+') as outfile:
+    #     json.dump(data, outfile, indent=4)
 
     # Release everything if job is finished
     cv2.destroyAllWindows()
