@@ -155,13 +155,13 @@ def main():
         #     'count': ct.get_count()
         # })
 
-        time = str(datetime.now().isoformat())
+        time_now = str(datetime.now().isoformat())
         count = ct.get_count()
             # open the csv file
         datapath = str(get_filepath('../data/') + 'data.csv')
         with open(datapath, 'a') as f:
             writer = csv.writer(f)
-            writer.writerow([time, count])
+            writer.writerow([time_now, count])
 
         mode_result = stats.mode([round(p) for p in pixels])
         mode_list.append(int(mode_result[0]))
