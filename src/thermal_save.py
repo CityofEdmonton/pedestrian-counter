@@ -50,7 +50,7 @@ def main():
 
     MAXTEMP = 31  # initial max temperature
     COLORDEPTH = args.color_depth  # how many color values we can have
-    AMBIENT_OFFSET = 0  # value to offset ambient temperature by to get rolling MAXTEMP
+    AMBIENT_OFFSET = 8  # value to offset ambient temperature by to get rolling MAXTEMP
     AMBIENT_TIME = 3000  # length of ambient temperature collecting intervals in seconds
 
     # create data folders if they don't exist
@@ -116,10 +116,10 @@ def main():
 
     # # Filter by Area.
     params.filterByArea = True
-    params.minArea = 500
+    params.minArea = 1000
 
     # # Filter by Circularity
-    params.filterByCircularity = True
+    params.filterByCircularity = False
     params.minCircularity = 0.1
 
     # # Filter by Convexity
