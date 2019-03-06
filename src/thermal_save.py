@@ -210,7 +210,7 @@ def main():
             x = keypoints[i].pt[0]
             y = keypoints[i].pt[1]
 
-            # print little circle
+            # print circle around blob
             pygame.draw.circle(lcd, (200,0,0), (int(x), int(y)), round(keypoints[i].size), 2)
 
         # update  our centroid tracker using the detected centroids
