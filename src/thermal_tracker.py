@@ -189,6 +189,7 @@ def main():
         pygame.display.update()
 
         surface = pygame.display.get_surface()
+        myfont = pygame.font.SysFont("comicsansms", 32)
 
         img = pygame.surfarray.array3d(surface)
         img = np.swapaxes(img, 0, 1)
@@ -199,13 +200,18 @@ def main():
 
         # Detect blobs.
         keypoints = detector.detect(img)
+        img_with_keypoints = cv2.drawKeypoints(img, keypoints, np.array([]), (0,0,255), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
 
         for i in range(0, len(keypoints)):
             x = keypoints[i].pt[0]
             y = keypoints[i].pt[1]
 
-            # print little circle
-            pygame.draw.circle(lcd, (200, 0, 0), (int(x), int(y)), 7, 3)
+            # print circle around blobs
+            pygame.draw.circle(lcd, (200,0,0), (int(x), int(y)), round(keypoints[i].size), 2)
+
+        # update counter in top left
+        textsurface = myfont.render(str(ct.get_count()), False, (0, 0, 0))
+        lcd.blit(textsurface,(0,0))
 
         # update  our centroid tracker using the detected centroids
         ct.update(keypoints)
