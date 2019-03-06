@@ -54,17 +54,8 @@ def main():
     AMBIENT_TIME = 3000  # length of ambient temperature collecting intervals in seconds
 
     # create data folders if they don't exist
-    if not os.path.exists(get_filepath('../img')):
-        os.makedirs(get_filepath('../img'))
     if not os.path.exists(get_filepath('../data')):
         os.makedirs(get_filepath('../data'))
-    if not os.path.exists(get_filepath('../video')):
-        os.makedirs(get_filepath('../video'))
-
-    # empty the images folder
-    for filename in os.listdir(get_filepath('../img/')):
-        if filename.endswith('.jpeg'):
-            os.unlink(get_filepath('../img/') + filename)
 
     i2c_bus = busio.I2C(board.SCL, board.SDA)
 
@@ -190,11 +181,6 @@ def main():
         surface = pygame.display.get_surface()
         myfont = pygame.font.SysFont("comicsansms", 32)
 
-        # frame saving
-        folder = get_filepath('../img/')
-        filename = str(date) + '.jpeg'
-        #pygame.image.save(surface, folder + filename)
-
         img = pygame.surfarray.array3d(surface)
         img = np.swapaxes(img, 0, 1)
 
@@ -221,7 +207,6 @@ def main():
         lcd.blit(textsurface,(0,0))
 
         pygame.display.update()
-        pygame.image.save(surface, folder + filename)
         
         for event in pygame.event.get():
             if event.type == pygame.KEYDOWN:
@@ -248,52 +233,7 @@ def main():
     with open(data_path, 'w+') as outfile:
         json.dump(data, outfile, indent=4)
 
-    # stitch the frames together
-    dir_path = get_filepath('../img/')
-    ext = '.jpeg'
-
-    out_index = 0
-    while os.path.exists(get_filepath('../video/')+'output%s.avi' % out_index):
-        out_index += 1
-    output = str(get_filepath('../video/')+'output%s.avi' % out_index)
-
-    framerate = 10
-
-    # get files from directory
-    images = []
-    for f in os.listdir(dir_path):
-        if f.endswith(ext):
-            images.append(f)
-
-    # sort files
-    images = sorted(images, key=lambda x: datetime.strptime(
-        x.split('.j')[0], '%Y-%m-%d %H:%M:%S.%f'))
-    # determine width and height from first image
-    image_path = os.path.join(dir_path, images[0])
-    frame = cv2.imread(image_path)
-    if not args.headless:
-        cv2.imshow('video', frame)
-    height, width, channels = frame.shape
-
-    # Define the codec and create VideoWriter object
-    fourcc = cv2.VideoWriter_fourcc(*'XVID')  # Be sure to use lower case
-    out = cv2.VideoWriter(output, fourcc, framerate, (width, height))
-
-    for image in images:
-
-        image_path = os.path.join(dir_path, image)
-        frame = cv2.imread(image_path)
-
-        out.write(frame)  # Write out frame to video
-
-        if not args.headless:
-            cv2.imshow('video', frame)
-            if (cv2.waitKey(1) & 0xFF) == ord('q'):  # Hit `q` to exit
-                break
-
-    print('video created!')
     # Release everything if job is finished
-    out.release()
     cv2.destroyAllWindows()
 
 
