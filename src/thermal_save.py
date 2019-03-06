@@ -188,6 +188,7 @@ def main():
         pygame.display.update()
 
         surface = pygame.display.get_surface()
+        myfont = pygame.font.SysFont("comicsansms", 32)
 
         # frame saving
         folder = get_filepath('../img/')
