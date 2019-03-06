@@ -20,7 +20,9 @@ from functools import cmp_to_key
 import json
 import argparse
 import csv
+import threading
 # some utility functions
+
 
 
 def constrain(val, min_val, max_val):
@@ -37,8 +39,27 @@ def get_filepath(relative_filepath):
     filename = os.path.join(dir, relative_filepath)
     return filename
 
+def csv_save_append(list):
+        datapath = str(get_filepath('../data/') + 'data.csv')
+        with open(datapath, 'a') as f:
+            writer = csv.writer(f)
+            writer.writerow(list)
+
+def csv_save(delay):
+    global payload
+    while True:
+        for child in active_children():
+            if child.name == 'csv_proc':
+                child.terminate()
+        loraproc = Process(
+            target=csv_save_append, name='csv_proc', args=(payload, ))
+        loraproc.start()
+        time.sleep(delay)
+
+payload = [str(datetime.now().isoformat()),0]
 
 def main():
+    global payload
 
      # argument parsing
 
@@ -137,24 +158,23 @@ def main():
     # array to hold mode of last 10 minutes of temperatures
     mode_list = []
 
+    # thread for saving data
+    CSV_SAVE_INTERVAL = 10  # length of intervals between each save
+    save_thread = threading.Thread(
+        target=csv_save, args=(CSV_SAVE_INTERVAL,))
+    save_thread.start()
+
     print('sensor started!')
 
     while(screencap):
         start = time.time()
-        
+
         # read the pixels
         pixels = []
         for row in sensor.pixels:
             pixels = pixels + row
 
-        # append row to csv
-        time_now = str(datetime.now().isoformat())
-        count = ct.get_count()
-            # open the csv file
-        datapath = str(get_filepath('../data/') + 'data.csv')
-        with open(datapath, 'a') as f:
-            writer = csv.writer(f)
-            writer.writerow([time_now, count])
+        payload = [str(datetime.now().isoformat()), ct.get_count()]
 
         mode_result = stats.mode([round(p) for p in pixels])
         mode_list.append(int(mode_result[0]))
