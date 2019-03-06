@@ -56,12 +56,14 @@ def send_lora(delay):
             if child.name == 'lora_proc':
                 child.terminate()
         loraproc = Process(
-            target=transmit, name='lora_proc', args=(payload, ))
+            target=transmit, name='lora_proc', args=(json.dumps(payload), ))
         loraproc.start()
         time.sleep(delay)
 
-
-payload = ''
+# a - latitude
+# o - longitude
+# c - count
+payload = {'a': 0, 'o': 0, 'c': 0}
 
 
 def main():
@@ -100,8 +102,8 @@ def main():
     width = 240
 
     # the list of colors we can choose from
-    blue = Color("indigo")
-    colors = list(blue.range_to(Color("red"), COLORDEPTH))
+    blue = Color("blue")
+    colors = list(blue.range_to(Color("yellow"), COLORDEPTH))
 
     # create the array of colors
     colors = [(int(c.red * 255), int(c.green * 255), int(c.blue * 255))
@@ -187,6 +189,7 @@ def main():
         pygame.display.update()
 
         surface = pygame.display.get_surface()
+        myfont = pygame.font.SysFont("comicsansms", 32)
 
         img = pygame.surfarray.array3d(surface)
         img = np.swapaxes(img, 0, 1)
@@ -197,13 +200,18 @@ def main():
 
         # Detect blobs.
         keypoints = detector.detect(img)
+        img_with_keypoints = cv2.drawKeypoints(img, keypoints, np.array([]), (0,0,255), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
 
         for i in range(0, len(keypoints)):
             x = keypoints[i].pt[0]
             y = keypoints[i].pt[1]
 
-            # print little circle
-            pygame.draw.circle(lcd, (200, 0, 0), (int(x), int(y)), 7, 3)
+            # print circle around blobs
+            pygame.draw.circle(lcd, (200,0,0), (int(x), int(y)), round(keypoints[i].size), 2)
+
+        # update counter in top left
+        textsurface = myfont.render(str(ct.get_count()), False, (0, 0, 0))
+        lcd.blit(textsurface,(0,0))
 
         # update  our centroid tracker using the detected centroids
         ct.update(keypoints)
@@ -214,18 +222,9 @@ def main():
 
         packet = gpsd.get_current()
 
-        if packet.mode >= 2:  # if gps has a 2D or 3D fix
-            latitude = int(abs(round(packet.position()[0], 4))*1000)
-            longitude = int(abs(round(packet.position()[1], 4))*1000)
-            long_bytes = longitude.to_bytes(4, sys.byteorder)
-            lat_bytes = latitude.to_bytes(4, sys.byteorder)
-        else:
-            long_bytes = int(0).to_bytes(4, sys.byteorder)
-            lat_bytes = int(0).to_bytes(4, sys.byteorder)
-
-        count = ct.get_count()
-        count_bytes = count.to_bytes(8, sys.byteorder)
-        payload = count_bytes + lat_bytes + long_bytes
+        payload['a'] = round(packet.lat, 3)
+        payload['o'] = round(packet.lon, 3)
+        payload['c'] = ct.get_count()
 
         # empty mode_list every AMBIENT_TIME *10 seconds to get current ambient temperature
         if len(mode_list) > AMBIENT_TIME:

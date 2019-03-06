@@ -50,7 +50,7 @@ def main():
 
     MAXTEMP = 31  # initial max temperature
     COLORDEPTH = args.color_depth  # how many color values we can have
-    AMBIENT_OFFSET = 9  # value to offset ambient temperature by to get rolling MAXTEMP
+    AMBIENT_OFFSET = 8  # value to offset ambient temperature by to get rolling MAXTEMP
     AMBIENT_TIME = 3000  # length of ambient temperature collecting intervals in seconds
 
     # create data folders if they don't exist
@@ -87,8 +87,8 @@ def main():
     width = 240
 
     # the list of colors we can choose from
-    blue = Color("indigo")
-    colors = list(blue.range_to(Color("red"), COLORDEPTH))
+    blue = Color("blue")
+    colors = list(blue.range_to(Color("yellow"), COLORDEPTH))
 
     # create the array of colors
     colors = [(int(c.red * 255), int(c.green * 255), int(c.blue * 255))
@@ -116,10 +116,10 @@ def main():
 
     # # Filter by Area.
     params.filterByArea = True
-    params.minArea = 250
+    params.minArea = 1000
 
     # # Filter by Circularity
-    params.filterByCircularity = True
+    params.filterByCircularity = False
     params.minCircularity = 0.1
 
     # # Filter by Convexity
@@ -188,34 +188,41 @@ def main():
         pygame.display.update()
 
         surface = pygame.display.get_surface()
+        myfont = pygame.font.SysFont("comicsansms", 32)
 
         # frame saving
         folder = get_filepath('../img/')
         filename = str(date) + '.jpeg'
-        pygame.image.save(surface, folder + filename)
+        #pygame.image.save(surface, folder + filename)
 
         img = pygame.surfarray.array3d(surface)
         img = np.swapaxes(img, 0, 1)
 
         # Read image
         img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        img = cv2.bitwise_not(img)
+        img_not = cv2.bitwise_not(img)
 
         # Detect blobs.
-        keypoints = detector.detect(img)
+        keypoints = detector.detect(img_not)
+        img_with_keypoints = cv2.drawKeypoints(img, keypoints, np.array([]), (0,0,255), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
 
         for i in range(0, len(keypoints)):
             x = keypoints[i].pt[0]
             y = keypoints[i].pt[1]
 
-            # print little circle
-            pygame.draw.circle(lcd, (200, 0, 0), (int(x), int(y)), 7, 3)
+            # print circle around blob
+            pygame.draw.circle(lcd, (200,0,0), (int(x), int(y)), round(keypoints[i].size), 2)
 
         # update  our centroid tracker using the detected centroids
         ct.update(keypoints)
 
-        pygame.display.update()
+        # update counter in top left
+        textsurface = myfont.render(str(ct.get_count()), False, (0, 0, 0))
+        lcd.blit(textsurface,(0,0))
 
+        pygame.display.update()
+        pygame.image.save(surface, folder + filename)
+        
         for event in pygame.event.get():
             if event.type == pygame.KEYDOWN:
                 print('terminating...')
