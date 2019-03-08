@@ -21,6 +21,7 @@ import threading
 import sys
 import RPi.GPIO as GPIO
 from dragino import Dragino
+import logging
 # some utility functions
 
 
@@ -31,21 +32,17 @@ def constrain(val, min_val, max_val):
 def map_value(x, in_min, in_max, out_min, out_max):
     return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
 
-# separate process using pexpect to interact with ttn transmission
-
-
 def send_lora(delay):
     global payload
     GPIO.setwarnings(False)
     D = Dragino("dragino.ini.default", logging_level = logging.DEBUG)
-    D.join()
-    while not D.registered():
-        print("Waiting")
-        sleep(2)
-    for i in range(0, 5):
+    while True:
+        while not D.registered():
+            print("Waiting")
+            sleep(2)
         D.send(json.dumps(payload))
         print("Sent message")
-    time.sleep(delay)
+        time.sleep(delay)
 
 # a - latitude
 # o - longitude
