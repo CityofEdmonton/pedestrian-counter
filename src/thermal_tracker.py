@@ -58,7 +58,6 @@ def main():
     parser.add_argument(
         '--headless', help='run the pygame headlessly', action='store_true')
     args = parser.parse_args()
-    gpsd.connect()
     i2c_bus = busio.I2C(board.SCL, board.SDA)
 
     MAXTEMP = 29  # initial max temperature
@@ -204,10 +203,8 @@ def main():
 
         time.sleep(max(1./25 - (time.time() - start), 0))
 
-        packet = gpsd.get_current()
-
-        payload['a'] = round(packet.lat, 3)
-        payload['o'] = round(packet.lon, 3)
+        payload['a'] = 0
+        payload['o'] = 0
         payload['c'] = ct.get_count()
 
         # empty mode_list every AMBIENT_TIME *10 seconds to get current ambient temperature
