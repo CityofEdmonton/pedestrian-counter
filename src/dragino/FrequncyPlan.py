@@ -18,7 +18,7 @@
 
 #https://www.thethingsnetwork.org/wiki/LoRaWAN/Frequencies/Frequency-Plans
 CH1 = 902.3
-CH2 = 803.1
+CH2 = 903.1
 # CH3 = 868.5
 # CH4 = 867.1
 # CH5 = 867.3
