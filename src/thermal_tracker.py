@@ -19,6 +19,8 @@ import json
 import gpsd
 import threading
 import sys
+import RPi.GPIO as GPIO
+from dragino import Dragino
 # some utility functions
 
 
@@ -32,33 +34,18 @@ def map_value(x, in_min, in_max, out_min, out_max):
 # separate process using pexpect to interact with ttn transmission
 
 
-def transmit(str):
-    dir = os.path.dirname(__file__)
-    filename = os.path.join(dir, './ttn/thethingsnetwork-send-v1')
-    lora = pexpect.spawn(filename)
-    while(1):
-        # handle all cases
-        i = lora.expect(['waiting', 'FAILURE', 'not sending',
-                         pexpect.TIMEOUT, pexpect.EOF])
-        if i == 0:
-            lora.sendline(str)
-            print('PedCount updated!\n')
-            lora.terminate(force=True)
-            break
-        else:
-            print('Lora Failure: retrying...')
-
-
 def send_lora(delay):
     global payload
-    while True:
-        for child in active_children():
-            if child.name == 'lora_proc':
-                child.terminate()
-        loraproc = Process(
-            target=transmit, name='lora_proc', args=(json.dumps(payload), ))
-        loraproc.start()
-        time.sleep(delay)
+    GPIO.setwarnings(False)
+    D = Dragino("dragino.ini.default", logging_level = logging.DEBUG)
+    D.join()
+    while not D.registered():
+        print("Waiting")
+        sleep(2)
+    for i in range(0, 5):
+        D.send(json.dumps(payload))
+        print("Sent message")
+    time.sleep(delay)
 
 # a - latitude
 # o - longitude
@@ -82,7 +69,7 @@ def main():
     AMBIENT_OFFSET = 9  # value to offset ambient temperature by to get rolling MAXTEMP
     # length of ambient temperature collecting intervals increments of 0.1 seconds
     AMBIENT_TIME = 100
-    LORA_SEND_INTERVAL = 1  # length of intervals between attempted lora uplinks in seconds
+    LORA_SEND_INTERVAL = 30  # length of intervals between attempted lora uplinks in seconds
 
     if args.headless:
         os.putenv('SDL_VIDEODRIVER', 'dummy')
