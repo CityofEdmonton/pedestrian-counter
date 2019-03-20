@@ -206,7 +206,6 @@ def main():
                                      (displayPixelHeight * ix, displayPixelWidth * jx, displayPixelHeight, displayPixelWidth))
                 except:
                     print("Caught drawing error")
-        #pygame.display.update()
 
         surface = pygame.display.get_surface()
         myfont = pygame.font.SysFont("comicsansms", 25)
@@ -279,8 +278,6 @@ def main():
             trackableObjects[objectID] = to
 
         # update counter in top left
-        # textsurface = myfont.render(str(ct.get_count()), False, (0, 0, 0))
-        # if total_up != total_up_old or total_down != total_down_old:
         textsurface1 = myfont.render("IN: "+str(total_up), False, (255, 255, 255))
         textsurface2 = myfont.render('OUT: '+str(total_down), False, (255, 255, 255))
         lcd.blit(textsurface1,(0,0))
