@@ -21,6 +21,7 @@ import json
 import argparse
 import csv
 import threading
+from trackableobject import TrackableObject
 # some utility functions
 
 
@@ -56,7 +57,7 @@ def csv_save(delay):
         loraproc.start()
         time.sleep(delay)
 
-payload = [str(datetime.now().isoformat()),0]
+payload = [str(datetime.now().isoformat()), 0, 0, 0]
 
 def main():
     global payload
@@ -149,6 +150,15 @@ def main():
     # initialize centroid tracker
     ct = CentroidTracker()
 
+    # a dictionary to map each unique object ID to a TrackableObject
+    trackableObjects = {}
+
+    # the total number of objects that have moved either up or down
+    total_down = 0
+    total_up = 0
+    total_down_old = 0
+    total_up_old = 0
+
     # let the sensor initialize
     time.sleep(.1)
 
@@ -174,7 +184,7 @@ def main():
         for row in sensor.pixels:
             pixels = pixels + row
 
-        payload = [str(datetime.now().isoformat()), ct.get_count()]
+        payload = [str(datetime.now().isoformat()), ct.get_count(), total_up, total_down]
 
         mode_result = stats.mode([round(p) for p in pixels])
         mode_list.append(int(mode_result[0]))
@@ -187,6 +197,7 @@ def main():
         # perform interpolation
         bicubic = griddata(points, pixels, (grid_x, grid_y), method='cubic')
 
+
         # draw everything
         for ix, row in enumerate(bicubic):
             for jx, pixel in enumerate(row):
@@ -195,10 +206,9 @@ def main():
                                      (displayPixelHeight * ix, displayPixelWidth * jx, displayPixelHeight, displayPixelWidth))
                 except:
                     print("Caught drawing error")
-        pygame.display.update()
 
         surface = pygame.display.get_surface()
-        myfont = pygame.font.SysFont("comicsansms", 32)
+        myfont = pygame.font.SysFont("comicsansms", 25)
 
         img = pygame.surfarray.array3d(surface)
         img = np.swapaxes(img, 0, 1)
@@ -211,6 +221,12 @@ def main():
         keypoints = detector.detect(img_not)
         img_with_keypoints = cv2.drawKeypoints(img, keypoints, np.array([]), (0,0,255), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
 
+        # draw a horizontal line in the center of the frame -- once an
+	    # object crosses this line we will determine whether they were
+	    # moving 'up' or 'down'
+        pygame.draw.line(lcd, (255, 255, 255), (0, height // 2), (width, height // 2), 2)
+        pygame.display.update()
+
         for i in range(0, len(keypoints)):
             x = keypoints[i].pt[0]
             y = keypoints[i].pt[1]
@@ -219,11 +235,56 @@ def main():
             pygame.draw.circle(lcd, (200,0,0), (int(x), int(y)), round(keypoints[i].size), 2)
 
         # update  our centroid tracker using the detected centroids
-        ct.update(keypoints)
+        objects = ct.update(keypoints)
+
+        # loop over the tracked objects
+        for (objectID, centroid) in objects.items():
+            # check to see if a trackable object exists for the current
+            # object ID
+            to = trackableObjects.get(objectID, None)
+
+            # if there is no existing trackable object, create one
+            if to is None:
+                to = TrackableObject(objectID, centroid)
+            
+            # otherwise, there is a trackable object so we can utilize it
+            # to determine direction
+            else:
+                # the difference between the y-coordinate of the *current*
+                # centroid and the mean of *previous* centroids will tell
+                # us in which direction the object is moving (negative for
+                # 'up' and positive for 'down')
+                y = [c[1] for c in to.centroids]
+                direction = centroid[1] - np.mean(y)
+                to.centroids.append(centroid)
+
+                # check to see if the object has been counted or not
+                if not to.counted:
+                    # if the direction is negative (indicating the object
+                    # is moving up) AND the centroid is above the center
+                    # line, count the object
+                    if direction < 0 and centroid[1] < height // 2:
+                        total_up += 1
+                        to.counted = True
+
+                    # if the direction is positive (indicating the object
+                    # is moving down) AND the centroid is below the
+                    # center line, count the object
+                    elif direction > 0 and centroid[1] > height // 2:
+                        total_down += 1
+                        to.counted = True
+
+            # store the trackable object in our dictionary
+            trackableObjects[objectID] = to
 
         # update counter in top left
-        textsurface = myfont.render(str(ct.get_count()), False, (0, 0, 0))
-        lcd.blit(textsurface,(0,0))
+        textsurface1 = myfont.render("IN: "+str(total_up), False, (255, 255, 255))
+        textsurface2 = myfont.render('OUT: '+str(total_down), False, (255, 255, 255))
+        lcd.blit(textsurface1,(0,0))
+        lcd.blit(textsurface2,(0,25))
+
+        total_up_old = total_up
+        total_down_old = total_down
 
         pygame.display.update()
         
