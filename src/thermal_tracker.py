@@ -19,6 +19,9 @@ import json
 import gpsd
 import threading
 import sys
+import RPi.GPIO as GPIO
+from dragino import Dragino
+import logging
 # some utility functions
 
 
@@ -29,35 +32,16 @@ def constrain(val, min_val, max_val):
 def map_value(x, in_min, in_max, out_min, out_max):
     return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
 
-# separate process using pexpect to interact with ttn transmission
-
-
-def transmit(str):
-    dir = os.path.dirname(__file__)
-    filename = os.path.join(dir, './ttn/thethingsnetwork-send-v1')
-    lora = pexpect.spawn(filename)
-    while(1):
-        # handle all cases
-        i = lora.expect(['waiting', 'FAILURE', 'not sending',
-                         pexpect.TIMEOUT, pexpect.EOF])
-        if i == 0:
-            lora.sendline(str)
-            print('PedCount updated!\n')
-            lora.terminate(force=True)
-            break
-        else:
-            print('Lora Failure: retrying...')
-
-
 def send_lora(delay):
     global payload
+    GPIO.setwarnings(False)
+    D = Dragino("dragino.ini.default", logging_level = logging.DEBUG)
     while True:
-        for child in active_children():
-            if child.name == 'lora_proc':
-                child.terminate()
-        loraproc = Process(
-            target=transmit, name='lora_proc', args=(json.dumps(payload), ))
-        loraproc.start()
+        while not D.registered():
+            print("Waiting")
+            sleep(2)
+        D.send(json.dumps(payload))
+        print("Sent message")
         time.sleep(delay)
 
 # a - latitude
@@ -74,7 +58,6 @@ def main():
     parser.add_argument(
         '--headless', help='run the pygame headlessly', action='store_true')
     args = parser.parse_args()
-    gpsd.connect()
     i2c_bus = busio.I2C(board.SCL, board.SDA)
 
     MAXTEMP = 29  # initial max temperature
@@ -82,7 +65,7 @@ def main():
     AMBIENT_OFFSET = 9  # value to offset ambient temperature by to get rolling MAXTEMP
     # length of ambient temperature collecting intervals increments of 0.1 seconds
     AMBIENT_TIME = 100
-    LORA_SEND_INTERVAL = 1  # length of intervals between attempted lora uplinks in seconds
+    LORA_SEND_INTERVAL = 30  # length of intervals between attempted lora uplinks in seconds
 
     if args.headless:
         os.putenv('SDL_VIDEODRIVER', 'dummy')
@@ -220,10 +203,8 @@ def main():
 
         time.sleep(max(1./25 - (time.time() - start), 0))
 
-        packet = gpsd.get_current()
-
-        payload['a'] = round(packet.lat, 3)
-        payload['o'] = round(packet.lon, 3)
+        payload['a'] = 0
+        payload['o'] = 0
         payload['c'] = ct.get_count()
 
         # empty mode_list every AMBIENT_TIME *10 seconds to get current ambient temperature

@@ -1,6 +1,5 @@
 #!/bin/bash
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
-sudo gpsd /dev/ttyS0 -F /var/run/gpsd.sock
 
 if [ -z "$1" ]; then
     echo "Pass virtual env directory as argument"
