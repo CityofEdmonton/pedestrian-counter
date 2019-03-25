@@ -37,6 +37,17 @@ def get_filepath(relative_filepath):
     filename = os.path.join(dir, relative_filepath)
     return filename
 
+def count_within_range(list1, l, r): 
+    '''
+    Helper function to count how many numbers in list1 falls into range [l,r]
+    '''
+    c = 0 
+    # traverse in the list1 
+    for x in list1: 
+        # condition check 
+        if x>= l and x<= r: 
+            c+= 1 
+    return c
 
 def main():
 
@@ -257,14 +268,14 @@ def main():
                     # if the direction is negative (indicating the object
                     # is moving up) AND the centroid is above the center
                     # line, count the object
-                    if direction < 0 and centroid[1] < height // 2:
+                    if direction < 0 and centroid[1] < height // 2 and count_within_range(y,height//2,height) > 0:
                         total_up += 1
                         to.counted = True
 
                     # if the direction is positive (indicating the object
                     # is moving down) AND the centroid is below the
                     # center line, count the object
-                    elif direction > 0 and centroid[1] > height // 2:
+                    elif direction > 0 and centroid[1] > height // 2 and count_within_range(y,0,height//2) > 0:
                         total_down += 1
                         to.counted = True
 
