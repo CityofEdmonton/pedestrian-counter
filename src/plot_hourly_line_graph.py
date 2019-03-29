@@ -24,15 +24,11 @@ bins_y = []
 for element in list:
     if not element[0] in bins_x:
         bins_x.append(element[0])
-        bins_y.append(0)
-
-for i in range(0, len(list)):
-    bin_index = bins_x.index(list[i][0])
-    bins_y[bin_index] += list[i][1]
+        bins_y.append(element[1])
 
 plt.plot(bins_x, bins_y, label='Data')
 plt.xlabel('Date') # x-axis label
 plt.ylabel('Count') # y-axis label
-plt.title('Pedestrian Counter Data (January 30 - February 15)') # plot title
+plt.title('Pedestrian Counter Data') # plot title
 plt.legend()
 plt.show()
