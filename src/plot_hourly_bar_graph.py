@@ -32,10 +32,9 @@ for i in range(0, len(list)):
 
 bins_hours = [element.hour for element in bins_x]
 
-index = numpy.arange(len(bins_x))
-plt.bar(index, bins_y)
+plt.bar(bins_hours, bins_y)
 plt.xlabel('Hour') # x-axis label
 plt.ylabel('Count') # y-axis label
 plt.xticks(bins_hours, fontsize=10)
-plt.title('February 23') # plot title
+plt.title('Date') # plot title
 plt.show()
