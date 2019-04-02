@@ -52,12 +52,15 @@ for element in list:
 
 # plot the daily graph
 for key, value in date_dict.items():
-    plt.plot(value[0], value[1], label=str(key))
+    plt.plot(value[0], value[1], label=str(key)+' Count')
     plt.gca().xaxis.set_major_locator(dates.HourLocator())
     plt.gca().xaxis.set_major_formatter(dates.DateFormatter('%H')) # format the hour
-    plt.xlabel('Date: ' + str(key)) # x-axis label
+    # set the limit of x axis
+    plt.gca().set_xlim([datetime.datetime.combine(key, datetime.time(hour=0)), 
+                        datetime.datetime.combine(key + datetime.timedelta(days=1), datetime.time(hour=0))])
+    plt.xlabel('Hour') # x-axis label
     plt.ylabel('Count') # y-axis label
-    plt.title('Pedestrian Counter Data') # plot title
+    plt.title('Date: ' + str(key)) # plot title
     plt.legend()
     figure = plt.gcf() # get current figure
     plt.savefig(r"%s\%s.png"%(directory, str(key)), dpi=200)
@@ -65,8 +68,8 @@ for key, value in date_dict.items():
 
 # plot the combined graph
 for key, value in date_dict.items():
-    plt.plot(value[0], value[1], label=str(key))
-    plt.xlabel('Date') # x-axis label
+    plt.plot(value[0], value[1], label=str(key)+' Count')
+    plt.xlabel('Hour') # x-axis label
     plt.ylabel('Count') # y-axis label
     plt.title('Pedestrian Counter Data') # plot title
     plt.legend()
