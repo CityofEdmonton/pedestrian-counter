@@ -58,6 +58,7 @@ for key, value in date_dict.items():
     # set the limit of x axis
     plt.gca().set_xlim([datetime.datetime.combine(key, datetime.time(hour=0)), 
                         datetime.datetime.combine(key + datetime.timedelta(days=1), datetime.time(hour=0))])
+    plt.gca().set_ylim(bottom=0) # set the limit of y axis
     plt.xlabel('Hour') # x-axis label
     plt.ylabel('Count') # y-axis label
     plt.title('Date: ' + str(key)) # plot title
