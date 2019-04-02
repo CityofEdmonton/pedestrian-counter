@@ -1,10 +1,20 @@
 import matplotlib.pyplot as plt
+import matplotlib.pylab as pylab
 from dateutil.parser import parse
 import datetime
 import csv
 import numpy
 import os
 import copy
+
+# plotting params
+params = {'legend.fontsize': 'x-large',
+          'figure.figsize': (12, 9),
+         'axes.labelsize': 'x-large',
+         'axes.titlesize':'x-large',
+         'xtick.labelsize':'x-large',
+         'ytick.labelsize':'x-large'}
+pylab.rcParams.update(params)
 
 directory = r"..\graphs\hourly_bar_graph"
 if not os.path.exists(directory):

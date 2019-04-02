@@ -1,9 +1,20 @@
 import matplotlib.pyplot as plt
+import matplotlib.dates as dates
+import matplotlib.pylab as pylab
 from dateutil.parser import parse
 import datetime
 import csv
 import numpy
 import os
+
+# plotting params
+params = {'legend.fontsize': 'x-large',
+          'figure.figsize': (12, 9),
+         'axes.labelsize': 'x-large',
+         'axes.titlesize':'x-large',
+         'xtick.labelsize':'x-large',
+         'ytick.labelsize':'x-large'}
+pylab.rcParams.update(params)
 
 directory = r"..\graphs\hourly_line_graph"
 if not os.path.exists(directory):
@@ -42,12 +53,13 @@ for element in list:
 # plot the daily graph
 for key, value in date_dict.items():
     plt.plot(value[0], value[1], label=str(key))
-    plt.xlabel('Date') # x-axis label
+    plt.gca().xaxis.set_major_locator(dates.HourLocator())
+    plt.gca().xaxis.set_major_formatter(dates.DateFormatter('%H')) # format the hour
+    plt.xlabel('Date: ' + str(key)) # x-axis label
     plt.ylabel('Count') # y-axis label
     plt.title('Pedestrian Counter Data') # plot title
     plt.legend()
     figure = plt.gcf() # get current figure
-    figure.set_size_inches(8, 6)
     plt.savefig(r"%s\%s.png"%(directory, str(key)), dpi=200)
     plt.close()
 
@@ -59,5 +71,4 @@ for key, value in date_dict.items():
     plt.title('Pedestrian Counter Data') # plot title
     plt.legend()
 figure = plt.gcf() # get current figure
-figure.set_size_inches(8, 6)
 plt.savefig(r"%s\%s.png"%(directory, "combined"), dpi=200)
