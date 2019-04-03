@@ -7,6 +7,13 @@ import numpy
 import os
 import copy
 
+
+class CountReading:
+    def __init__(self, timestamp, count):
+        self.timestamp = timestamp
+        self.count = count
+
+
 # plotting params
 params = {'legend.fontsize': 'x-large',
           'figure.figsize': (12, 9),
@@ -16,67 +23,64 @@ params = {'legend.fontsize': 'x-large',
          'ytick.labelsize':'x-large'}
 pylab.rcParams.update(params)
 
-directory = r"..\graphs\hourly_bar_graph"
+directory = os.path.join('..','graphs')
+directory = os.path.join(directory,'hourly_bar_graph')
 if not os.path.exists(directory):
     os.makedirs(directory)
 
-list = []
+data = []
 
-with open('../data/data.csv', 'r') as csvfile:
+with open(os.path.join(os.path.join('..','data'), 'data.csv'), 'r') as csvfile:
     plots = csv.reader(csvfile, delimiter=',')
     for row in plots:
         try:
-            list.append([datetime.datetime.strptime(
+            data.append([datetime.datetime.strptime(
                 row[0], '%Y-%m-%d %H:%M:%S.%f'), int(row[1])])
         except:
             pass
 
-bins_x = set()
-date_dict = {}
-start_count = None
-start_date = None
+date_to_count_reading = {}
+date_start_count = 0
+current_date = datetime.datetime.min
 
-for element in list:
-    if not element[0] in bins_x:
-        bins_x.add(element[0])
-        if start_date == element[0].date():
-            date_dict[start_date][0].append(element[0])
-            date_dict[start_date][1].append(element[1]-start_count)
-        else:
-            # set the new date and count as the base
-            start_date = element[0].date()
-            start_count = element[1]
-            date_dict[start_date] = ([],[])
-            date_dict[start_date][0].append(element[0])
-            date_dict[start_date][1].append(element[1]-start_count)
+for timestamp, count in data:
+    if timestamp.date() not in date_to_count_reading:
+        date_to_count_reading[timestamp.date()] = []
+        # set the new date and count as the base
+        current_date = timestamp.date()
+        date_start_count = count
+    date_to_count_reading[current_date].append(
+        CountReading(timestamp, count-date_start_count))
 
 # calculate the non-cumulative data by taking the difference
-date_dict_noncumu = copy.deepcopy(date_dict)
-for key, value in date_dict.items():
-    for i in range(1,len(value[1])):
-        date_dict_noncumu[key][1][i] = date_dict[key][1][i] - date_dict[key][1][i-1]
+date_to_count_reading_noncumu = copy.deepcopy(date_to_count_reading)
+for date, count_reading_list in date_to_count_reading.items():
+    for i in range(1,len(count_reading_list)):
+        # timestamps = [count_reading.timestamp for count_reading in count_reading_list]
+        # counts = [count_reading.count for count_reading in count_reading_list]
+        date_to_count_reading_noncumu[date][i].count = date_to_count_reading[date][i].count - date_to_count_reading[date][i-1].count
 
-for key, value in date_dict_noncumu.items():
+for date, count_reading_list in date_to_count_reading_noncumu.items():
     # add up the counts into hourly bins
     bins_hours = set()
-    bins_value = dict()
-    for i in range(0,len(value[0])):
-        h = value[0][i].hour
+    hour_to_total_count = dict()
+    for i in range(0,len(count_reading_list)):
+        h = count_reading_list[i].timestamp.hour
         bins_hours.add(h)
-        if h not in bins_value.keys():
-            bins_value[h] = value[1][i]
+        if h not in hour_to_total_count.keys():
+            hour_to_total_count[h] = count_reading_list[i].count
         else:
-            bins_value[h] += value[1][i]
+            hour_to_total_count[h] += count_reading_list[i].count
     bins_hours = sorted(bins_hours)
-    bins_value = [x[1] for x in sorted(bins_value.items())]
+    total_count_list = [count for hour, count in sorted(hour_to_total_count.items())]
     
     # plot the daily graph
-    plt.bar(bins_hours, bins_value) 
+    plt.bar(bins_hours, total_count_list)
     plt.xlabel('Hour') # x-axis label
     plt.ylabel('Count') # y-axis label
     plt.xticks(bins_hours, fontsize=10)
-    plt.title('Date: ' + str(key)) # plot title
+    plt.title('Date: ' + str(date)) # plot title
     figure = plt.gcf() # get current figure
     figure.set_size_inches(8, 6)
-    plt.savefig(r"%s\%s.png"%(directory, str(key)), dpi=200)
+    plt.savefig(os.path.join(directory,"%s.png"%str(date)), dpi=200)
     plt.close()
