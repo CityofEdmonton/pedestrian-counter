@@ -1,40 +1,86 @@
 import matplotlib.pyplot as plt
+import matplotlib.pylab as pylab
 from dateutil.parser import parse
 import datetime
 import csv
 import numpy
+import os
+import copy
 
-list = []
-x = []
-y = []
-bins_x = []
 
-with open('../data/data.csv', 'r') as csvfile:
-    plots = csv.reader((l.replace('\0', '') for l in csvfile))
+class CountReading:
+    def __init__(self, timestamp, count):
+        self.timestamp = timestamp
+        self.count = count
+
+
+# plotting params
+params = {'legend.fontsize': 'x-large',
+          'figure.figsize': (12, 9),
+          'axes.labelsize': 'x-large',
+          'axes.titlesize': 'x-large',
+          'xtick.labelsize': 'x-large',
+          'ytick.labelsize': 'x-large'}
+pylab.rcParams.update(params)
+
+directory = os.path.join('..', 'graphs')
+directory = os.path.join(directory, 'hourly_bar_graph')
+if not os.path.exists(directory):
+    os.makedirs(directory)
+
+data = []
+
+with open(os.path.join(os.path.join('..', 'data'), 'data.csv'), 'r') as csvfile:
+    plots = csv.reader(csvfile, delimiter=',')
     for row in plots:
         try:
-            list.append([datetime.datetime.strptime(
-                row[0], '%m/%d/%y %H:%M'), int(row[1])])
+            data.append([datetime.datetime.strptime(
+                row[0], '%Y-%m-%d %H:%M:%S.%f'), int(row[1])])
         except:
             pass
 
-bins_x = []
-bins_y = []
+date_to_count_reading = {}
+date_start_count = 0
+current_date = datetime.datetime.min
 
-for element in list:
-    if not element[0] in bins_x:
-        bins_x.append(element[0])
-        bins_y.append(0)
+for timestamp, count in data:
+    if timestamp.date() not in date_to_count_reading:
+        date_to_count_reading[timestamp.date()] = []
+        # set the new date and count as the base
+        current_date = timestamp.date()
+        date_start_count = count
+    date_to_count_reading[current_date].append(
+        CountReading(timestamp, count-date_start_count))
 
-for i in range(0, len(list)):
-    bin_index = bins_x.index(list[i][0])
-    bins_y[bin_index] += list[i][1]
+# calculate the non-cumulative data by taking the difference
+date_to_count_reading_noncumu = copy.deepcopy(date_to_count_reading)
+for date, count_reading_list in date_to_count_reading.items():
+    for i in range(1, len(count_reading_list)):
+        date_to_count_reading_noncumu[date][i].count = date_to_count_reading[date][i].count - \
+            date_to_count_reading[date][i-1].count
 
-bins_hours = [element.hour for element in bins_x]
+for date, count_reading_list in date_to_count_reading_noncumu.items():
+    # add up the counts into hourly bins
+    bins_hours = set()
+    hour_to_total_count = dict()
+    for i in range(0, len(count_reading_list)):
+        h = count_reading_list[i].timestamp.hour
+        bins_hours.add(h)
+        if h not in hour_to_total_count.keys():
+            hour_to_total_count[h] = count_reading_list[i].count
+        else:
+            hour_to_total_count[h] += count_reading_list[i].count
+    bins_hours = sorted(bins_hours)
+    total_count_list = [count for hour,
+                        count in sorted(hour_to_total_count.items())]
 
-plt.bar(bins_hours, bins_y)
-plt.xlabel('Hour') # x-axis label
-plt.ylabel('Count') # y-axis label
-plt.xticks(bins_hours, fontsize=10)
-plt.title('Date') # plot title
-plt.show()
+    # plot the daily graph
+    plt.bar(bins_hours, total_count_list)
+    plt.xlabel('Hour')  # x-axis label
+    plt.ylabel('Count')  # y-axis label
+    plt.xticks(bins_hours, fontsize=10)
+    plt.title('Date: ' + str(date))  # plot title
+    figure = plt.gcf()  # get current figure
+    figure.set_size_inches(8, 6)
+    plt.savefig(os.path.join(directory, "%s.png" % str(date)), dpi=200)
+    plt.close()
