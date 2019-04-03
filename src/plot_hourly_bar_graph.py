@@ -56,8 +56,6 @@ for timestamp, count in data:
 date_to_count_reading_noncumu = copy.deepcopy(date_to_count_reading)
 for date, count_reading_list in date_to_count_reading.items():
     for i in range(1, len(count_reading_list)):
-        # timestamps = [count_reading.timestamp for count_reading in count_reading_list]
-        # counts = [count_reading.count for count_reading in count_reading_list]
         date_to_count_reading_noncumu[date][i].count = date_to_count_reading[date][i].count - \
             date_to_count_reading[date][i-1].count
 
