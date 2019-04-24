@@ -85,8 +85,8 @@ def main():
 
     MAXTEMP = 31  # initial max temperature
     COLORDEPTH = args.color_depth  # how many color values we can have
-    AMBIENT_OFFSET = 8  # value to offset ambient temperature by to get rolling MAXTEMP
-    AMBIENT_TIME = 30000  # length of ambient temperature collecting intervals in seconds
+    AMBIENT_OFFSET = 4  # value to offset ambient temperature by to get rolling MAXTEMP
+    AMBIENT_TIME = 120  # length of ambient temperature collecting intervals in seconds
 
     # create data folders if they don't exist
     if not os.path.exists(get_filepath('../data')):
@@ -113,8 +113,8 @@ def main():
     width = 240
 
     # the list of colors we can choose from
-    blue = Color("blue")
-    colors = list(blue.range_to(Color("green"), COLORDEPTH))
+    blue = Color("black")
+    colors = list(blue.range_to(Color("white"), COLORDEPTH))
 
     # create the array of colors
     colors = [(int(c.red * 255), int(c.green * 255), int(c.blue * 255))
@@ -137,7 +137,7 @@ def main():
     params = cv2.SimpleBlobDetector_Params()
 
     # # Change thresholds
-    params.minThreshold = 90
+    params.minThreshold = 0
    # params.maxThreshold = 255
 
     # # Filter by Area.
