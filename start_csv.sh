@@ -11,7 +11,7 @@ else
     if [ "$2" == "--headless" ]; then
         python $DIR/src/thermal_save_csv.py --headless 1024
     else 
-        python $DIR/src/thermal_save_csv.py 1024
+        python $DIR/src/thermal_save_csv.py 256
     fi
 fi
 
