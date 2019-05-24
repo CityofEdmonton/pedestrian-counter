@@ -62,8 +62,8 @@ def main():
 
     MAXTEMP = 31  # initial max temperature
     COLORDEPTH = args.color_depth  # how many color values we can have
-    AMBIENT_OFFSET = 8  # value to offset ambient temperature by to get rolling MAXTEMP
-    AMBIENT_TIME = 3000  # length of ambient temperature collecting intervals in seconds
+    AMBIENT_OFFSET = 4  # value to offset ambient temperature by to get rolling MAXTEMP
+    AMBIENT_TIME = 120  # length of ambient temperature collecting intervals in seconds
 
     # create data folders if they don't exist
     if not os.path.exists(get_filepath('../img')):
@@ -99,8 +99,8 @@ def main():
     width = 240
 
     # the list of colors we can choose from
-    blue = Color("blue")
-    colors = list(blue.range_to(Color("yellow"), COLORDEPTH))
+    black = Color("black")
+    colors = list(black.range_to(Color("white"), COLORDEPTH))
 
     # create the array of colors
     colors = [(int(c.red * 255), int(c.green * 255), int(c.blue * 255))
@@ -123,12 +123,12 @@ def main():
     params = cv2.SimpleBlobDetector_Params()
 
     # # Change thresholds
-    params.minThreshold = 10
-    params.maxThreshold = 255
+    params.minThreshold = 0
+    # params.maxThreshold = 255
 
     # # Filter by Area.
     params.filterByArea = True
-    params.minArea = 1000
+    params.minArea = 750
 
     # # Filter by Circularity
     params.filterByCircularity = False
@@ -192,7 +192,7 @@ def main():
 
         # instead of taking the ambient temperature over one frame of data take it over a set amount of time
         MAXTEMP = float(np.mean(mode_list)) + AMBIENT_OFFSET
-        pixels = [map_value(p, np.mean(mode_list) + 2, MAXTEMP, 0,
+        pixels = [map_value(p, np.mean(mode_list) + 1, MAXTEMP, 0,
                             COLORDEPTH - 1) for p in pixels]
 
         # perform interpolation

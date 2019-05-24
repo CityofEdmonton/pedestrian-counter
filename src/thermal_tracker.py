@@ -60,11 +60,11 @@ def main():
     args = parser.parse_args()
     i2c_bus = busio.I2C(board.SCL, board.SDA)
 
-    MAXTEMP = 29  # initial max temperature
+    MAXTEMP = 31  # initial max temperature
     COLORDEPTH = args.color_depth  # how many color values we can have
-    AMBIENT_OFFSET = 9  # value to offset ambient temperature by to get rolling MAXTEMP
+    AMBIENT_OFFSET = 4  # value to offset ambient temperature by to get rolling MAXTEMP
     # length of ambient temperature collecting intervals increments of 0.1 seconds
-    AMBIENT_TIME = 100
+    AMBIENT_TIME = 120
     LORA_SEND_INTERVAL = 30  # length of intervals between attempted lora uplinks in seconds
 
     if args.headless:
@@ -85,8 +85,8 @@ def main():
     width = 240
 
     # the list of colors we can choose from
-    blue = Color("blue")
-    colors = list(blue.range_to(Color("yellow"), COLORDEPTH))
+    black = Color("black")
+    colors = list(black.range_to(Color("white"), COLORDEPTH))
 
     # create the array of colors
     colors = [(int(c.red * 255), int(c.green * 255), int(c.blue * 255))
@@ -109,12 +109,12 @@ def main():
     params = cv2.SimpleBlobDetector_Params()
 
     # # Change thresholds
-    params.minThreshold = 10
-    params.maxThreshold = 255
+    params.minThreshold = 0
+    # params.maxThreshold = 255
 
     # # Filter by Area.
     params.filterByArea = True
-    params.minArea = 250
+    params.minArea = 750
 
     # # Filter by Circularity
     params.filterByCircularity = True
@@ -155,7 +155,7 @@ def main():
         mode_list.append(int(mode_result[0]))
 
         MAXTEMP = float(np.mean(mode_list)) + AMBIENT_OFFSET
-        pixels = [map_value(p, mode_result[0]+2, MAXTEMP, 0,
+        pixels = [map_value(p, mode_result[0]+1, MAXTEMP, 0,
                             COLORDEPTH - 1) for p in pixels]
 
         # perform interpolation
