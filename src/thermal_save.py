@@ -50,20 +50,67 @@ def count_within_range(list1, l, r):
     return c
 
 def main():
-
-     # argument parsing
-
+    # argument parsing
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "color_depth", help="integer number of colors to use to draw temps", type=int)
-    parser.add_argument(
         '--headless', help='run the pygame headlessly', action='store_true')
-    args = parser.parse_args()
+    
+    parser.add_argument(
+        "--color_depth", help="integer number of colors to use to draw temps", type=int)
+    parser.add_argument(
+        '--max_temp', help='initial max temperature', type=int)
+    parser.add_argument(
+        '--ambient_offset', help='value to offset ambient temperature by to get rolling MAXTEMP', type=int)
+    parser.add_argument(
+        '--ambient_time', help='length of ambient temperature collecting intervals in seconds', type=int)
+    
+    parser.add_argument(
+        '--blob_min_threshold', help='blod detection min threshold', type=int)
+    parser.add_argument(
+        '--blob_max_threshold', help='blod detection min threshold', type=int)
+    
+    parser.add_argument(
+        '--blob_filterbyarea', help='blod detection filter by area', action='store_true')
+    parser.add_argument(
+        '--blob_min_area', help='blod detection filter by area min area', type=int)
+    
+    parser.add_argument(
+        '--blob_filterbycircularity', help='blod detection filter by circularity', action='store_true')
+    parser.add_argument(
+        '--blob_min_circularity', help='blod detection filter by circularity min circularity', type=float)
+    
+    parser.add_argument(
+        '--blob_filterbyconvexity', help='blod detection filter by convexity', action='store_true')
+    parser.add_argument(
+        '--blob_min_convexity', help='blod detection filter by convexity min convexity', type=float)
+    
+    parser.add_argument(
+        '--blob_filterbyinertia', help='blod detection filter by inertia', action='store_true')
+    parser.add_argument(
+        '--blob_min_inertiaratio', help='blod detection filter by inertia inertia ratio', type=float)
 
-    MAXTEMP = 31  # initial max temperature
-    COLORDEPTH = args.color_depth  # how many color values we can have
-    AMBIENT_OFFSET = 4  # value to offset ambient temperature by to get rolling MAXTEMP
-    AMBIENT_TIME = 120  # length of ambient temperature collecting intervals in seconds
+    args = parser.parse_args()
+    print(args)
+    
+    COLOR_DEPTH = args.color_depth
+    MAX_TEMP = args.max_temp
+    AMBIENT_OFFSET = args.ambient_offset
+    AMBIENT_TIME = args.ambient_time
+    
+    BLOB_MIN_THRESHOLD = args.blob_min_threshold
+    BLOB_MAX_THRESHOLD = args.blob_max_threshold
+    
+    BLOB_FILTERBYAREA = args.blob_filterbyarea
+    BLOB_MIN_AREA = args.blob_min_area
+    
+    BLOB_FILTERBYCIRCULARITY = args.blob_filterbycircularity
+    BLOB_MIN_CIRCULARITY = args.blob_min_circularity
+    
+    BLOB_FILTERBYCONVEXITY = args.blob_filterbyconvexity
+    BLOB_MIN_CONVEXITY = args.blob_min_convexity
+    
+    BLOB_FILTERBYINERTIA = args.blob_filterbyinertia
+    BLOB_MIN_INERTIARATIO = args.blob_min_inertiaratio
 
     # create data folders if they don't exist
     if not os.path.exists(get_filepath('../img')):
@@ -100,7 +147,7 @@ def main():
 
     # the list of colors we can choose from
     black = Color("black")
-    colors = list(black.range_to(Color("white"), COLORDEPTH))
+    colors = list(black.range_to(Color("white"), COLOR_DEPTH))
 
     # create the array of colors
     colors = [(int(c.red * 255), int(c.green * 255), int(c.blue * 255))
@@ -122,27 +169,33 @@ def main():
     # Setup SimpleBlobDetector parameters.
     params = cv2.SimpleBlobDetector_Params()
 
-    # # Change thresholds
-    params.minThreshold = 0
-    # params.maxThreshold = 255
+    # Change thresholds
+    if BLOB_MIN_THRESHOLD:
+        params.minThreshold = BLOB_MIN_THRESHOLD
+    if BLOB_MAX_THRESHOLD:
+        params.maxThreshold = BLOB_MAX_THRESHOLD
 
-    # # Filter by Area.
-    params.filterByArea = True
-    params.minArea = 750
+    # Filter by Area.
+    if BLOB_FILTERBYAREA:
+        params.filterByArea = BLOB_FILTERBYAREA
+        params.minArea = BLOB_MIN_AREA
 
-    # # Filter by Circularity
-    params.filterByCircularity = False
-    params.minCircularity = 0.1
+    # Filter by Circularity
+    if BLOB_FILTERBYCIRCULARITY:
+        params.filterByCircularity = BLOB_FILTERBYCIRCULARITY
+        params.minCircularity = BLOB_MIN_CIRCULARITY
 
-    # # Filter by Convexity
-    params.filterByConvexity = False
-    params.minConvexity = 0.87
+    # Filter by Convexity
+    if BLOB_FILTERBYCONVEXITY:
+        params.filterByConvexity = BLOB_FILTERBYCONVEXITY
+        params.minConvexity = BLOB_MIN_CONVEXITY
 
-    # # Filter by Inertia
-    params.filterByInertia = False
-    params.minInertiaRatio = 0.01
+    # Filter by Inertia
+    if BLOB_FILTERBYINERTIA:
+        params.filterByInertia = BLOB_FILTERBYINERTIA
+        params.minInertiaRatio = BLOB_MIN_INERTIARATIO
 
-    # # Set up the detector with default parameters.
+    # Set up the detector with default parameters.
     detector = cv2.SimpleBlobDetector_create(params)
 
     # initialize centroid tracker
@@ -191,9 +244,9 @@ def main():
         mode_list.append(int(mode_result[0]))
 
         # instead of taking the ambient temperature over one frame of data take it over a set amount of time
-        MAXTEMP = float(np.mean(mode_list)) + AMBIENT_OFFSET
-        pixels = [map_value(p, np.mean(mode_list) + 1, MAXTEMP, 0,
-                            COLORDEPTH - 1) for p in pixels]
+        MAX_TEMP = float(np.mean(mode_list)) + AMBIENT_OFFSET
+        pixels = [map_value(p, np.mean(mode_list) + 1, MAX_TEMP, 0,
+                            COLOR_DEPTH - 1) for p in pixels]
 
         # perform interpolation
         bicubic = griddata(points, pixels, (grid_x, grid_y), method='cubic')
@@ -202,7 +255,7 @@ def main():
         for ix, row in enumerate(bicubic):
             for jx, pixel in enumerate(row):
                 try:
-                    pygame.draw.rect(lcd, colors[constrain(int(pixel), 0, COLORDEPTH - 1)],
+                    pygame.draw.rect(lcd, colors[constrain(int(pixel), 0, COLOR_DEPTH - 1)],
                                      (displayPixelHeight * ix, displayPixelWidth * jx, displayPixelHeight, displayPixelWidth))
                 except:
                     print("Caught drawing error")
