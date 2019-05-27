@@ -52,9 +52,9 @@ def csv_save(delay):
         for child in active_children():
             if child.name == 'csv_proc':
                 child.terminate()
-        loraproc = Process(
+        proc = Process(
             target=csv_save_append, name='csv_proc', args=(payload, ))
-        loraproc.start()
+        proc.start()
         time.sleep(delay)
 
 def count_within_range(list1, l, r): 
