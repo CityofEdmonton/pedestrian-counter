@@ -77,47 +77,48 @@ def main():
     # argument parsing
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        '--headless', help='run the pygame headlessly', action='store_true')    
+        '--headless', help='run the pygame headlessly', action='store_true')
     
     parser.add_argument(
-        "color_depth", help="integer number of colors to use to draw temps", type=int)
+        "--color_depth", help="integer number of colors to use to draw temps", type=int)
     parser.add_argument(
-        'max_temp', help='initial max temperature', type=int)
+        '--max_temp', help='initial max temperature', type=int)
     parser.add_argument(
-        'ambient_offset', help='value to offset ambient temperature by to get rolling MAXTEMP', type=int)
+        '--ambient_offset', help='value to offset ambient temperature by to get rolling MAXTEMP', type=int)
     parser.add_argument(
-        'ambient_time', help='length of ambient temperature collecting intervals in seconds', type=int)
+        '--ambient_time', help='length of ambient temperature collecting intervals in seconds', type=int)
     
     parser.add_argument(
-        'blob_min_threshold', help='blod detection min threshold', type=int) 
+        '--blob_min_threshold', help='blod detection min threshold', type=int)
     parser.add_argument(
-        'blob_max_threshold', help='blod detection min threshold', type=int) 
+        '--blob_max_threshold', help='blod detection min threshold', type=int)
     
     parser.add_argument(
-        '--blob_filterbyarea', help='blod detection filter by area', action='store_true', default=False)
+        '--blob_filterbyarea', help='blod detection filter by area', action='store_true')
     parser.add_argument(
-        'blob_min_area', help='blod detection filter by area min area', type=int)
+        '--blob_min_area', help='blod detection filter by area min area', type=int)
     
     parser.add_argument(
-        '--blob_filterbycircularity', help='blod detection filter by circularity', action='store_true', default=False)
+        '--blob_filterbycircularity', help='blod detection filter by circularity', action='store_true')
     parser.add_argument(
-        'blob_min_circularity', help='blod detection filter by circularity min circularity', type=float)
+        '--blob_min_circularity', help='blod detection filter by circularity min circularity', type=float)
     
     parser.add_argument(
-        '--blob_filterbyconvexity', help='blod detection filter by convexity', action='store_true', default=False)
+        '--blob_filterbyconvexity', help='blod detection filter by convexity', action='store_true')
     parser.add_argument(
-        'blob_min_convexity', help='blod detection filter by convexity min convexity', type=float)
+        '--blob_min_convexity', help='blod detection filter by convexity min convexity', type=float)
     
     parser.add_argument(
-        '--blob_filterbyinertia', help='blod detection filter by inertia', action='store_true', default=False)
+        '--blob_filterbyinertia', help='blod detection filter by inertia', action='store_true')
     parser.add_argument(
-        'blob_min_inertiaratio', help='blod detection filter by inertia inertia ratio', type=float)
+        '--blob_min_inertiaratio', help='blod detection filter by inertia inertia ratio', type=float)
     
     parser.add_argument(
-        'csv_save_interval', help='csv file saving interval in seconds', type=int)
+        '--csv_save_interval', help='csv file saving interval in seconds', type=int)
     
     args = parser.parse_args()
-
+    print(args)
+    
     COLOR_DEPTH = args.color_depth
     MAX_TEMP = args.max_temp
     AMBIENT_OFFSET = args.ambient_offset
@@ -125,21 +126,18 @@ def main():
     
     BLOB_MIN_THRESHOLD = args.blob_min_threshold
     BLOB_MAX_THRESHOLD = args.blob_max_threshold
-    if args.blob_filterbyarea:
-        BLOB_FILTERBYAREA = True
-        BLOB_MIN_AREA = args.blob_min_area
-
-    if args.blob_filterbycircularity:
-        BLOB_FILTERBYCIRCULARITY = True
-        BLOB_MIN_CIRCULARITY = args.blob_min_circularity
     
-    if args.blob_filterbyconvexity:
-        BLOB_FILTERBYCONVEXITY = True
-        BLOB_MIN_CONVEXITY = args.blob_min_convexity
+    BLOB_FILTERBYAREA = args.blob_filterbyarea
+    BLOB_MIN_AREA = args.blob_min_area
     
-    if args.blob_filterbyinertia:
-        BLOB_FILTERBYINERTIA = True
-        BLOB_MIN_INERTIARATIO = args.blob_min_inertiaratio
+    BLOB_FILTERBYCIRCULARITY = args.blob_filterbycircularity
+    BLOB_MIN_CIRCULARITY = args.blob_min_circularity
+    
+    BLOB_FILTERBYCONVEXITY = args.blob_filterbyconvexity
+    BLOB_MIN_CONVEXITY = args.blob_min_convexity
+    
+    BLOB_FILTERBYINERTIA = args.blob_filterbyinertia
+    BLOB_MIN_INERTIARATIO = args.blob_min_inertiaratio
     
     CSV_SAVE_INTERVAL = args.csv_save_interval
 
