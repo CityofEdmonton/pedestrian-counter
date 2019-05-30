@@ -253,7 +253,7 @@ def main():
             pygame.draw.circle(lcd, (200,0,0), (int(x), int(y)), round(keypoints[i].size), 2)
 
         # update counter in top left
-        textsurface = myfont.render(str(ct.get_count()), False, (0, 0, 0))
+        textsurface = myfont.render(str(ct.get_count()), False, (255, 255, 255))
         lcd.blit(textsurface,(0,0))
 
         # update  our centroid tracker using the detected centroids
