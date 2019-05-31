@@ -37,24 +37,26 @@ def get_filepath(relative_filepath):
     filename = os.path.join(dir, relative_filepath)
     return filename
 
-def count_within_range(list1, l, r): 
+
+def count_within_range(list1, l, r):
     '''
     Helper function to count how many numbers in list1 falls into range [l,r]
     '''
-    c = 0 
-    # traverse in the list1 
-    for x in list1: 
-        # condition check 
-        if x>= l and x<= r: 
-            c+= 1 
+    c = 0
+    # traverse in the list1
+    for x in list1:
+        # condition check
+        if x >= l and x <= r:
+            c += 1
     return c
+
 
 def main():
     # argument parsing
     parser = argparse.ArgumentParser()
     parser.add_argument(
         '--headless', help='run the pygame headlessly', action='store_true')
-    
+
     parser.add_argument(
         "--color_depth", help="integer number of colors to use to draw temps", type=int)
     parser.add_argument(
@@ -63,27 +65,27 @@ def main():
         '--ambient_offset', help='value to offset ambient temperature by to get rolling MAXTEMP', type=int)
     parser.add_argument(
         '--ambient_time', help='length of ambient temperature collecting intervals in seconds', type=int)
-    
+
     parser.add_argument(
         '--blob_min_threshold', help='blod detection min threshold', type=int)
     parser.add_argument(
         '--blob_max_threshold', help='blod detection min threshold', type=int)
-    
+
     parser.add_argument(
         '--blob_filterbyarea', help='blod detection filter by area', action='store_true')
     parser.add_argument(
         '--blob_min_area', help='blod detection filter by area min area', type=int)
-    
+
     parser.add_argument(
         '--blob_filterbycircularity', help='blod detection filter by circularity', action='store_true')
     parser.add_argument(
         '--blob_min_circularity', help='blod detection filter by circularity min circularity', type=float)
-    
+
     parser.add_argument(
         '--blob_filterbyconvexity', help='blod detection filter by convexity', action='store_true')
     parser.add_argument(
         '--blob_min_convexity', help='blod detection filter by convexity min convexity', type=float)
-    
+
     parser.add_argument(
         '--blob_filterbyinertia', help='blod detection filter by inertia', action='store_true')
     parser.add_argument(
@@ -91,24 +93,24 @@ def main():
 
     args = parser.parse_args()
     print(args)
-    
+
     COLOR_DEPTH = args.color_depth
     MAX_TEMP = args.max_temp
     AMBIENT_OFFSET = args.ambient_offset
     AMBIENT_TIME = args.ambient_time
-    
+
     BLOB_MIN_THRESHOLD = args.blob_min_threshold
     BLOB_MAX_THRESHOLD = args.blob_max_threshold
-    
+
     BLOB_FILTERBYAREA = args.blob_filterbyarea
     BLOB_MIN_AREA = args.blob_min_area
-    
+
     BLOB_FILTERBYCIRCULARITY = args.blob_filterbycircularity
     BLOB_MIN_CIRCULARITY = args.blob_min_circularity
-    
+
     BLOB_FILTERBYCONVEXITY = args.blob_filterbyconvexity
     BLOB_MIN_CONVEXITY = args.blob_min_convexity
-    
+
     BLOB_FILTERBYINERTIA = args.blob_filterbyinertia
     BLOB_MIN_INERTIARATIO = args.blob_min_inertiaratio
 
@@ -277,12 +279,14 @@ def main():
 
         # Detect blobs.
         keypoints = detector.detect(img_not)
-        img_with_keypoints = cv2.drawKeypoints(img, keypoints, np.array([]), (0,0,255), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+        img_with_keypoints = cv2.drawKeypoints(img, keypoints, np.array(
+            []), (0, 0, 255), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
 
         # draw a horizontal line in the center of the frame -- once an
-	    # object crosses this line we will determine whether they were
-	    # moving 'up' or 'down'
-        pygame.draw.line(lcd, (255, 255, 255), (0, height // 2), (width, height // 2), 2)
+        # object crosses this line we will determine whether they were
+        # moving 'up' or 'down'
+        pygame.draw.line(lcd, (255, 255, 255),
+                         (0, height // 2), (width, height // 2), 2)
         pygame.display.update()
 
         for i in range(0, len(keypoints)):
@@ -290,7 +294,8 @@ def main():
             y = keypoints[i].pt[1]
 
             # print circle around blob
-            pygame.draw.circle(lcd, (200,0,0), (int(x), int(y)), round(keypoints[i].size), 2)
+            pygame.draw.circle(lcd, (200, 0, 0), (int(
+                x), int(y)), round(keypoints[i].size), 2)
 
         # update  our centroid tracker using the detected centroids
         objects = ct.update(keypoints)
@@ -304,7 +309,7 @@ def main():
             # if there is no existing trackable object, create one
             if to is None:
                 to = TrackableObject(objectID, centroid)
-            
+
             # otherwise, there is a trackable object so we can utilize it
             # to determine direction
             else:
@@ -321,14 +326,14 @@ def main():
                     # if the direction is negative (indicating the object
                     # is moving up) AND the centroid is above the center
                     # line, count the object
-                    if direction < 0 and centroid[1] < height // 2 and count_within_range(y,height//2,height) > 0:
+                    if direction < 0 and centroid[1] < height // 2 and count_within_range(y, height//2, height) > 0:
                         total_up += 1
                         to.counted = True
 
                     # if the direction is positive (indicating the object
                     # is moving down) AND the centroid is below the
                     # center line, count the object
-                    elif direction > 0 and centroid[1] > height // 2 and count_within_range(y,0,height//2) > 0:
+                    elif direction > 0 and centroid[1] > height // 2 and count_within_range(y, 0, height//2) > 0:
                         total_down += 1
                         to.counted = True
 
@@ -336,17 +341,19 @@ def main():
             trackableObjects[objectID] = to
 
         # update counter in top left
-        textsurface1 = myfont.render("IN: "+str(total_up), False, (255, 255, 255))
-        textsurface2 = myfont.render('OUT: '+str(total_down), False, (255, 255, 255))
-        lcd.blit(textsurface1,(0,0))
-        lcd.blit(textsurface2,(0,25))
+        textsurface1 = myfont.render(
+            "IN: "+str(total_up), False, (255, 255, 255))
+        textsurface2 = myfont.render(
+            'OUT: '+str(total_down), False, (255, 255, 255))
+        lcd.blit(textsurface1, (0, 0))
+        lcd.blit(textsurface2, (0, 25))
 
         total_up_old = total_up
         total_down_old = total_down
 
         pygame.display.update()
         pygame.image.save(surface, folder + filename)
-        
+
         for event in pygame.event.get():
             if event.type == pygame.KEYDOWN:
                 print('terminating...')
