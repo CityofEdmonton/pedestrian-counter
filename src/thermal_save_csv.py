@@ -240,7 +240,6 @@ def main():
     mode_list = []
 
     # thread for saving data
-    CSV_SAVE_INTERVAL = 10  # length of intervals between each save
     save_thread = threading.Thread(
         target=csv_save, args=(CSV_SAVE_INTERVAL,))
     save_thread.start()
@@ -305,7 +304,7 @@ def main():
             # print circle around blob
             pygame.draw.circle(lcd, (200,0,0), (int(x), int(y)), round(keypoints[i].size), 2)
 
-        # update  our centroid tracker using the detected centroids
+        # update our centroid tracker using the detected centroids
         objects = ct.update(keypoints)
 
         # loop over the tracked objects
