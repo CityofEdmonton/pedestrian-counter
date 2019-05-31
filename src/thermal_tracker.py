@@ -22,6 +22,7 @@ import sys
 import RPi.GPIO as GPIO
 from dragino import Dragino
 import logging
+from trackableobject import TrackableObject
 # some utility functions
 
 
@@ -44,11 +45,22 @@ def send_lora(delay):
         print("Sent message")
         time.sleep(delay)
 
+def count_within_range(list1, l, r): 
+    '''
+    Helper function to count how many numbers in list1 falls into range [l,r]
+    '''
+    c = 0 
+    # traverse in the list1 
+    for x in list1: 
+        # condition check 
+        if x>= l and x<= r: 
+            c+= 1 
+    return c
+
 # a - latitude
 # o - longitude
 # c - count
 payload = {'a': 0, 'o': 0, 'c': 0}
-
 
 def main():
     global payload
@@ -194,26 +206,46 @@ def main():
     # initialize centroid tracker
     ct = CentroidTracker()
 
+    # a dictionary to map each unique object ID to a TrackableObject
+    trackableObjects = {}
+
+    # the total number of objects that have moved either up or down
+    total_down = 0
+    total_up = 0
+    total_down_old = 0
+    total_up_old = 0
+
     # let the sensor initialize
     time.sleep(.1)
+
+    # press key to exit
+    screencap = True
+
+    # array to hold mode of last 10 minutes of temperatures
     mode_list = []
 
     send_thread = threading.Thread(
         target=send_lora, args=(LORA_SEND_INTERVAL,))
     send_thread.start()
 
-    while(True):
+    print('sensor started!')
+
+    while(screencap):
         start = time.time()
+        
         # read the pixels
-
         pixels = []
-
         for row in sensor.pixels:
             pixels = pixels + row
+
+        payload['a'] = 0
+        payload['o'] = 0
+        payload['c'] = ct.get_count()
 
         mode_result = stats.mode([round(p) for p in pixels])
         mode_list.append(int(mode_result[0]))
 
+        # instead of taking the ambient temperature over one frame of data take it over a set amount of time
         MAX_TEMP = float(np.mean(mode_list)) + AMBIENT_OFFSET
         pixels = [map_value(p, mode_result[0] + 1, MAX_TEMP, 0,
                             COLOR_DEPTH - 1) for p in pixels]
@@ -232,7 +264,7 @@ def main():
         pygame.display.update()
 
         surface = pygame.display.get_surface()
-        myfont = pygame.font.SysFont("comicsansms", 32)
+        myfont = pygame.font.SysFont("comicsansms", 25)
 
         img = pygame.surfarray.array3d(surface)
         img = np.swapaxes(img, 0, 1)
@@ -245,6 +277,12 @@ def main():
         keypoints = detector.detect(img)
         img_with_keypoints = cv2.drawKeypoints(img, keypoints, np.array([]), (0,0,255), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
 
+        # draw a horizontal line in the center of the frame -- once an
+	    # object crosses this line we will determine whether they were
+	    # moving 'up' or 'down'
+        pygame.draw.line(lcd, (255, 255, 255), (0, height // 2), (width, height // 2), 2)
+        pygame.display.update()
+
         for i in range(0, len(keypoints)):
             x = keypoints[i].pt[0]
             y = keypoints[i].pt[1]
@@ -252,26 +290,80 @@ def main():
             # print circle around blobs
             pygame.draw.circle(lcd, (200,0,0), (int(x), int(y)), round(keypoints[i].size), 2)
 
-        # update counter in top left
-        textsurface = myfont.render(str(ct.get_count()), False, (255, 255, 255))
-        lcd.blit(textsurface,(0,0))
+        # update our centroid tracker using the detected centroids
+        objects = ct.update(keypoints)
 
-        # update  our centroid tracker using the detected centroids
-        ct.update(keypoints)
+        # loop over the tracked objects
+        for (objectID, centroid) in objects.items():
+            # check to see if a trackable object exists for the current
+            # object ID
+            to = trackableObjects.get(objectID, None)
+
+            # if there is no existing trackable object, create one
+            if to is None:
+                to = TrackableObject(objectID, centroid)
+            
+            # otherwise, there is a trackable object so we can utilize it
+            # to determine direction
+            else:
+                # the difference between the y-coordinate of the *current*
+                # centroid and the mean of *previous* centroids will tell
+                # us in which direction the object is moving (negative for
+                # 'up' and positive for 'down')
+                y = [c[1] for c in to.centroids]
+                direction = centroid[1] - np.mean(y)
+                to.centroids.append(centroid)
+
+                # check to see if the object has been counted or not
+                if not to.counted:
+                    # if the direction is negative (indicating the object
+                    # is moving up) AND the centroid is above the center
+                    # line, count the object
+                    # the historical centroid must present in the lower half of the screen
+                    if direction < 0 and centroid[1] < height // 2 and count_within_range(y,height//2,height) > 0:
+                        total_up += 1
+                        to.counted = True
+
+                    # if the direction is positive (indicating the object
+                    # is moving down) AND the centroid is below the
+                    # center line, count the object
+                    # the historical centroid must present in the upper half of the screen
+                    elif direction > 0 and centroid[1] > height // 2 and count_within_range(y,0,height//2) > 0:
+                        total_down += 1
+                        to.counted = True
+
+            # store the trackable object in our dictionary
+            trackableObjects[objectID] = to
+
+        # update counter in top left
+        textsurface1 = myfont.render("IN: "+str(total_up), False, (255, 255, 255))
+        textsurface2 = myfont.render('OUT: '+str(total_down), False, (255, 255, 255))
+        lcd.blit(textsurface1,(0,0))
+        lcd.blit(textsurface2,(0,25))
+
+        total_up_old = total_up
+        total_down_old = total_down
 
         pygame.display.update()
 
-        time.sleep(max(1./25 - (time.time() - start), 0))
+        for event in pygame.event.get():
+            if event.type == pygame.KEYDOWN:
+                print('terminating...')
+                screencap = False
+                break
 
-        payload['a'] = 0
-        payload['o'] = 0
-        payload['c'] = ct.get_count()
+        # for running the save on for a certain amount of time
+        # if time.time() - start_time >= 10:
+        #    print('terminating...')
+        #    screencap = False
 
         # empty mode_list every AMBIENT_TIME *10 seconds to get current ambient temperature
         if len(mode_list) > AMBIENT_TIME:
             mode_list = []
+        time.sleep(max(1./25 - (time.time() - start), 0))
 
-    print("terminating...")
+    # Release everything if job is finished
+    cv2.destroyAllWindows()
 
 
 if __name__ == "__main__":
