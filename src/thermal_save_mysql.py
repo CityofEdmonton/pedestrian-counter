@@ -290,7 +290,6 @@ def main():
                                      (displayPixelHeight * ix, displayPixelWidth * jx, displayPixelHeight, displayPixelWidth))
                 except:
                     print("Caught drawing error")
-        pygame.display.update()
 
         surface = pygame.display.get_surface()
         myfont = pygame.font.SysFont("comicsansms", 25)
