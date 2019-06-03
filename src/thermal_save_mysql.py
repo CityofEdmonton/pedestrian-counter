@@ -47,10 +47,15 @@ def mysql_save_insert(mysql_config, list):
     sql = "INSERT INTO ped_count (count, device_id, description, time_stamp, latitude, longitude) VALUES (%s, %s, %s, %s, %s, %s)"
     val = (payload['c'], mysql_config["device_id"],
            mysql_config["description"], sqlDate, payload['a'], payload['o'])
-    cursor.execute(sql, val)
-    conn.commit()
-    cursor.close()
-    conn.close()
+    try:
+        cursor.execute(sql, val)
+        conn.commit()
+        print("inserted values %s"%(str(val)))
+    except MySQLdb.IntegrityError:
+        print("failed to insert values %s"%(str(val)))
+    finally:
+        cursor.close()
+        conn.close()
 
 
 def send_mysql(delay):
