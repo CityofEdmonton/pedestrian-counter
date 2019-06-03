@@ -23,6 +23,7 @@ import RPi.GPIO as GPIO
 from dragino import Dragino
 import logging
 from trackableobject import TrackableObject
+import mysql.connector
 # some utility functions
 
 
@@ -34,16 +35,40 @@ def map_value(x, in_min, in_max, out_min, out_max):
     return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
 
 
-def send_lora(delay):
+def mysql_save_insert(mysql_config, list):
+    sqlDate = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+    conn = mysql.connector.connect(
+        host=mysql_config["host"],
+        user=mysql_config["user"],
+        passwd=mysql_config["passwd"],
+        database=mysql_config["database"]
+    )
+    cursor = conn.cursor()
+    sql = "INSERT INTO ped_count (count, device_id, description, time_stamp, latitude, longitude) VALUES (%s, %s, %s, %s, %s, %s)"
+    val = (payload['c'], mysql_config["device_id"],
+           mysql_config["description"], sqlDate, payload['a'], payload['o'])
+    try:
+        cursor.execute(sql, val)
+        conn.commit()
+        print("inserted values %s"%(str(val)))
+    except MySQLdb.IntegrityError:
+        print("failed to insert values %s"%(str(val)))
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def send_mysql(delay):
     global payload
-    GPIO.setwarnings(False)
-    D = Dragino("dragino.ini.default", logging_level=logging.DEBUG)
+    with open("mysql_config.json") as f:
+        mysql_config = json.load(f)
     while True:
-        while not D.registered():
-            print("Waiting")
-            sleep(2)
-        D.send(json.dumps(payload))
-        print("Sent message")
+        for child in active_children():
+            if child.name == 'mysql_proc':
+                child.terminate()
+        proc = Process(
+            target=mysql_save_insert, name='mysql_proc', args=(mysql_config, payload, ))
+        proc.start()
         time.sleep(delay)
 
 
@@ -109,7 +134,7 @@ def main():
         '--blob_min_inertiaratio', help='blod detection filter by inertia inertia ratio', type=float)
 
     parser.add_argument(
-        '--lora_send_interval', help='length of intervals between attempted lora uplinks in seconds', type=int)
+        '--mysql_send_interval', help='length of intervals between attempted mysql insert in seconds', type=int)
 
     args = parser.parse_args()
     print(args)
@@ -135,7 +160,7 @@ def main():
     BLOB_FILTERBYINERTIA = args.blob_filterbyinertia
     BLOB_MIN_INERTIARATIO = args.blob_min_inertiaratio
 
-    LORA_SEND_INTERVAL = args.lora_send_interval
+    MYSQL_SEND_INTERVAL = args.mysql_send_interval
 
     if args.headless:
         os.putenv('SDL_VIDEODRIVER', 'dummy')
@@ -229,7 +254,7 @@ def main():
     mode_list = []
 
     send_thread = threading.Thread(
-        target=send_lora, args=(LORA_SEND_INTERVAL,))
+        target=send_mysql, args=(MYSQL_SEND_INTERVAL,))
     send_thread.start()
 
     print('sensor started!')
