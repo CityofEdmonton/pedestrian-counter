@@ -3,9 +3,10 @@ Description=Pedestrian counter
 After=multi-user.target
 
 [Service]
+WorkingDirectory=/home/pi/pedestrian-counter
 Type=simple
 User=pi
-ExecStart=/home/pi/pedestrian-counter/start.sh ped-detector --headless
+ExecStart=/home/pi/pedestrian-counter/start_mysql.sh ped-detector --headless
 Restart=always
 
 
