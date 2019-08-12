@@ -1,5 +1,7 @@
 # Pedestrian Counter
 
+* * *
+
 The pedestrian counter uses a thermal camera to count pedestrians by sensing human body heat and applying computer vision algorithm, and it transmits the counting data through (LoRa) low power and long-range wireless network.
 
 ## Video Demo
@@ -35,10 +37,9 @@ The pedestrian counter uses a thermal camera to count pedestrians by sensing hum
 ### Auto-start the script as service in linux
 
 Create the service Unit File by copying the content of file `pedestrian-counter.service.txt` to `pedestrian-counter.service` and then copy the Unit File to /etc/systemd/system folder and give it permissions by running:
-```
-sudo cp pedestrian-counter.service /etc/systemd/system/pedestrian-counter.service
-sudo chmod 644 /etc/systemd/system/pedestrian-counter.service
-```
+
+    sudo cp pedestrian-counter.service /etc/systemd/system/pedestrian-counter.service
+    sudo chmod 644 /etc/systemd/system/pedestrian-counter.service
 
 Once you have a unit file, you are ready to test the service:
 
@@ -50,10 +51,8 @@ Check the status of the service:
 
 The service can be stopped or restarted using standard systemd commands:
 
-```
-sudo systemctl stop pedestrian-counter.service
-sudo systemctl restart pedestrian-counter.service`
-```
+    sudo systemctl stop pedestrian-counter.service
+    sudo systemctl restart pedestrian-counter.service`
 
 Finally, use the enable command to ensure that the service starts whenever the system boots:
 
@@ -227,9 +226,9 @@ The final thing to do is to clean up the swap size. Leaving it large can reduce 
 In the future, also build opencv-contrib from source?
 <https://github.com/opencv/opencv_contrib>
 
-* * *
-
 ## Notes:
+
+* * *
 
 Object tracking algorithom from
 <https://www.pyimagesearch.com/2018/08/13/opencv-people-counter/>
