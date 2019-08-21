@@ -104,11 +104,18 @@ Finally, use the enable command to ensure that the service starts whenever the s
 
 * * *
 
+### Recommended method (use release)
+
+Use the latest Github release, dowload all the attached zip files and unzip to get .img file. Use Win32DiskImager to write the .img file to the SD card.
+
+The image includes the pedestrian counter and Raspbian, put your credentials in the config files to use.
+Rpi deafult username: pi, default passwd: raspberry
+
+### Or, Manually install dependecies
+
 Ensure you are using virtualenv, as it makes these dependencies so much easier to manage. create virtual environment with 
 
     python3 -m venv /path/to/new/virtual/environment
-
-### Contributing
 
 Setting up the development environment for working with ped-counter requires multiple dependencies.
 
