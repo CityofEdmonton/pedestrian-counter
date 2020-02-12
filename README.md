@@ -26,13 +26,13 @@ The pedestrian counter uses a thermal camera to count pedestrians by sensing hum
 
 ### Modes
 
--   `./start_csv.sh /path/to/python_virtualenv`: CSV data saving mode, saves counting data to csv file locally. For example, /path/to/python_virtualenv is ped-detector
+-   `./start_csv.sh ped-detector`: CSV data saving mode, saves counting data to csv file locally. ped-detector is /path/to/python_virtualenv.
 
--   `./start_data_save.sh /path/to/python_virtualenv`: Video saving mode, records and saves video locally from the pygame window (for debugging)
+-   `./start_data_save.sh ped-detector`: Video saving mode, records and saves video locally from the pygame window (for debugging). ped-detector is /path/to/python_virtualenv.
 
--   `./start_mysql.sh /path/to/python_virtualenv`: WiFi(Mysql database) mode, connects to network through WiFi, connects to Mysql Database, inserts count data to the database. (Put the database config in mysql_config.json)
+-   `./start_mysql.sh ped-detector`: WiFi(Mysql database) mode, connects to network through WiFi, connects to Mysql Database, inserts count data to the database. (Put the database config in mysql_config.json) ped-detector is /path/to/python_virtualenv.
 
--   `./start.sh path/to /path/to/venv`: LoRa mode, connects to the LoRaWAN Network, sends the count data through uplink messages. (Put the LoRa config in dragino.ini.default)
+-   `./start.sh path/to ped-detector`: LoRa mode, connects to the LoRaWAN Network, sends the count data through uplink messages. (Put the LoRa config in dragino.ini.default) ped-detector is /path/to/python_virtualenv.
 
 ### Auto-start the script as service in linux
 
