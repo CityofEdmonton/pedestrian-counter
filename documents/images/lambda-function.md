@@ -1,10 +1,14 @@
 # How to migrate AWS Lambda Functions between AWS accounts
-1. Export Lambda Function through AWS Console > Lamda Function > Actions > Export function as pedestrian-counter-lambda-microservice.yaml
-2. Install AWS CLI
-3. Sign in AWS CLI with credential
+1. Sign in with the source AWS account
+2. Export the Lambda Function SAM file through AWS Console > Lamda Function > Actions > Export function as pedestrian-counter-lambda-microservice.yaml
+3. Sign in with the destination AWS account
+4. Create a Lambda Function
+5. Deploy the SAM file:
+- Install AWS CLI
+- Sign in AWS CLI with the destination AWS account keys:
 
 `aws configure`
 
-4. Deploy the exported function YAML file:
+- Deploy the exported function YAML file:
 
-`sam deploy --template-file ./pedestrian-counter-lambda-microservice.yaml  --stack-name mystack --capabilities CAPABILITY_IAM`
+`sam deploy --template-file ./pedestrian-counter-lambda-microservice.yaml  --stack-name pedestrian-counter --capabilities CAPABILITY_IAM`
