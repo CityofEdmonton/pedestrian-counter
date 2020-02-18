@@ -4,7 +4,7 @@
 1. Enter Lambda Function Admin UI: Services > Lambda Function
 1. Export the Lambda Function deployment package zip file: Services > Lamda Function > Actions > Export function > Download deployment package
 
-### Import SAM YAML file
+### Import the Lambda Function deployment package .zip file
 1. Sign in with the destination AWS account
 1. Enter Lambda Function Admin UI: Services > Lambda Function
 1. Create a Lambda Function: Create function
