@@ -52,7 +52,7 @@ Check the status of the service:
 The service can be stopped or restarted using standard systemd commands:
 
     sudo systemctl stop pedestrian-counter.service
-    sudo systemctl restart pedestrian-counter.service`
+    sudo systemctl restart pedestrian-counter.service
 
 Finally, use the enable command to ensure that the service starts whenever the system boots:
 
