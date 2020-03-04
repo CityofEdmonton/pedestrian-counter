@@ -24,6 +24,7 @@ from dragino import Dragino
 import logging
 from trackableobject import TrackableObject
 import mysql.connector
+from pytz import timezone
 # some utility functions
 
 
@@ -36,7 +37,7 @@ def map_value(x, in_min, in_max, out_min, out_max):
 
 
 def mysql_save_insert(mysql_config, list):
-    sqlDate = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+    sqlDate = datetime.now(timezone('MST')).strftime('%Y-%m-%d %H:%M:%S')
     conn = mysql.connector.connect(
         host=mysql_config["host"],
         user=mysql_config["user"],
@@ -259,6 +260,7 @@ def main():
 
     print('sensor started!')
 
+    payload['c'] = 0
     while(screencap):
         start = time.time()
 
@@ -269,7 +271,7 @@ def main():
 
         payload['a'] = 0
         payload['o'] = 0
-        payload['c'] = ct.get_count()
+        payload['c'] = ct.get_count() - payload['c']
 
         mode_result = stats.mode([round(p) for p in pixels])
         mode_list.append(int(mode_result[0]))

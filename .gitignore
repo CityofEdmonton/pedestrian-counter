@@ -1,3 +1,8 @@
+mysql_config.json
+dragino.ini.default
+.lora_fcount
+video/*
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
