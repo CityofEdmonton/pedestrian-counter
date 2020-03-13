@@ -37,7 +37,7 @@ def map_value(x, in_min, in_max, out_min, out_max):
 
 
 def mysql_save_insert(mysql_config, list):
-    sqlDate = datetime.now(timezone('MST')).strftime('%Y-%m-%d %H:%M:%S')
+    sqlDate = datetime.now(timezone('America/Edmonton')).strftime('%Y-%m-%d %H:%M:%S')
     conn = mysql.connector.connect(
         host=mysql_config["host"],
         user=mysql_config["user"],
