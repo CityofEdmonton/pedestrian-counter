@@ -269,8 +269,8 @@ def main():
         for row in sensor.pixels:
             pixels = pixels + row
 
-        payload['a'] = 0
-        payload['o'] = 0
+        # payload['a'] = 0
+        # payload['o'] = 0
         payload['c'] = ct.get_count_since_last_reading()
 
         mode_result = stats.mode([round(p) for p in pixels])
