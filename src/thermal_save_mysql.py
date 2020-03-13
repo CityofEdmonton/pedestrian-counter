@@ -67,6 +67,7 @@ def send_mysql(delay):
         for child in active_children():
             if child.name == 'mysql_proc':
                 child.terminate()
+        
         proc = Process(
             target=mysql_save_insert, name='mysql_proc', args=(mysql_config, payload, ))
         proc.start()
@@ -89,8 +90,8 @@ def count_within_range(list1, l, r):
 # a - latitude
 # o - longitude
 # c - count
-payload = {'a': 0, 'o': 0, 'c': 0}
-
+payload = {'a': 53.539738, 'o': -113.489795, 'c': 0}
+last_count = 0
 
 def main():
     global payload
@@ -260,7 +261,6 @@ def main():
 
     print('sensor started!')
 
-    payload['c'] = 0
     while(screencap):
         start = time.time()
 
@@ -271,7 +271,7 @@ def main():
 
         payload['a'] = 0
         payload['o'] = 0
-        payload['c'] = ct.get_count() - payload['c']
+        payload['c'] = ct.get_count_since_last_reading()
 
         mode_result = stats.mode([round(p) for p in pixels])
         mode_list.append(int(mode_result[0]))

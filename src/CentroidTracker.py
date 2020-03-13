@@ -6,6 +6,9 @@ import numpy as np
 
 
 class CentroidTracker():
+    current_count = 0
+    last_count = 0
+
     def __init__(self, maxDisappeared=10, maxDetected=1):
         # initialize the next unique object ID along with two ordered
         # dictionaries used to keep track of mapping a given object
@@ -163,6 +166,14 @@ class CentroidTracker():
         # return the set of trackable objects
         return self.objects
 
-    # return person count
-    def get_count(self):
-        return len(self.detected)
+    # return accumulated person count
+    def get_accumulated_count(self):
+        current_count = len(self.detected)
+        return current_count
+
+    # return person count since last reading
+    def get_count_since_last_reading(self):
+        self.current_count = self.get_accumulated_count()
+        count_since_last_reading = self.current_count - self.last_count
+        self.last_count = self.current_count
+        return count_since_last_reading
